@@ -91,7 +91,7 @@ jobs:
     name: Lint & Test Build
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
-    container: node:22.22.2-alpine3.23@sha256:8ea2348b068a9544dae7317b4f3aafcdc032df1647bb7d768a05a5cad1a7683f
+    container: node:24.18.0-alpine3.23@sha256:595398b0081eacda8e1c4c5b97b76cd1020e4d58a8ebcb4843b9bca1e79e7436
     steps:
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -133,7 +133,7 @@ jobs:
     name: Unit Tests
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
-    container: node:22.22.2-alpine3.23@sha256:8ea2348b068a9544dae7317b4f3aafcdc032df1647bb7d768a05a5cad1a7683f
+    container: node:24.18.0-alpine3.23@sha256:595398b0081eacda8e1c4c5b97b76cd1020e4d58a8ebcb4843b9bca1e79e7436
     permissions:
       checks: write
     steps:
