@@ -5,7 +5,7 @@ name: Trivy Container Vulnerability Scan
 on:
   workflow_run:
     workflows:
-      - Seerr Release
+      - SeerrPlay Server Release
     types:
       - completed
   schedule:
@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   trivy:
-    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ vars.ENABLE_CONTAINER_RELEASES == 'true' && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success') }}
     name: Scan latest container image
     runs-on: ubuntu-24.04
 

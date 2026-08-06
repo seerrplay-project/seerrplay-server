@@ -1,6 +1,6 @@
 ---
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
-name: Seerr CI
+name: SeerrPlay Server CI
 
 on:
   pull_request:
@@ -13,9 +13,6 @@ on:
 
 permissions:
   contents: read
-
-env:
-  DOCKER_HUB: seerr/seerr
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -234,12 +231,6 @@ jobs:
           - name: Set up Docker Buildx
             uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_TOKEN }}
-
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
         with:
@@ -256,7 +247,6 @@ jobs:
         uses: docker/metadata-action@80c7e94dd9b9319bd5eb7a0e0fe9291e23a2a2e9 # v6
         with:
           images: |
-            ${{ env.DOCKER_HUB }}
             ghcr.io/${{ github.repository }}
           tags: |
             type=raw,value=develop
@@ -288,6 +278,8 @@ jobs:
     needs: publish
     if: always() && github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
+    env:
+      DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
     steps:
       - name: Determine Workflow Status
         id: status
@@ -300,10 +292,9 @@ jobs:
           esac
 
       - name: Send Discord notification
+        if: env.DISCORD_WEBHOOK != ''
         shell: bash
         run: |
-          WEBHOOK="${{ secrets.DISCORD_WEBHOOK }}"
-
           PAYLOAD=$(cat <<EOF
           {
             "embeds": [{
@@ -321,4 +312,4 @@ jobs:
           EOF
           )
 
-          curl -sS -H "Content-Type: application/json" -X POST -d "$PAYLOAD" "$WEBHOOK" || true
+          curl -sS -H "Content-Type: application/json" -X POST -d "$PAYLOAD" "$DISCORD_WEBHOOK" || true

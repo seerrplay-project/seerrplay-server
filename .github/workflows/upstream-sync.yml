@@ -1,0 +1,190 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Sync Seerr Upstream
+
+on:
+  schedule:
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  statuses: write
+
+concurrency:
+  group: upstream-sync
+  cancel-in-progress: false
+
+env:
+  UPSTREAM_REPOSITORY: seerr-team/seerr
+  UPSTREAM_BRANCH: develop
+  MIRROR_BRANCH: upstream-develop
+  SYNC_BRANCH: automation/upstream-sync
+
+jobs:
+  sync:
+    name: Prepare upstream sync pull request
+    if: github.repository == 'seerrplay-project/seerrplay-server'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout SeerrPlay develop
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          fetch-depth: 0
+          ref: develop
+
+      - name: Configure Git
+        run: |
+          git config user.name "seerrplay-sync[bot]"
+          git config user.email "seerrplay-sync[bot]@users.noreply.github.com"
+          git remote add upstream "https://github.com/${UPSTREAM_REPOSITORY}.git"
+          git fetch upstream "${UPSTREAM_BRANCH}" --no-tags
+
+      - name: Refresh clean upstream mirror
+        run: |
+          git push origin \
+            "+refs/remotes/upstream/${UPSTREAM_BRANCH}:refs/heads/${MIRROR_BRANCH}"
+
+      - name: Merge upstream into synchronization branch
+        id: merge
+        shell: bash
+        run: |
+          git switch -C "${SYNC_BRANCH}" origin/develop
+
+          set +e
+          git merge --no-edit "upstream/${UPSTREAM_BRANCH}"
+          merge_status=$?
+          set -e
+
+          if [ "$merge_status" -ne 0 ]; then
+            conflict_files=$(git diff --name-only --diff-filter=U)
+            git merge --abort
+            {
+              echo "conflict=true"
+              echo "conflict_files<<EOF"
+              printf '%s\n' "$conflict_files"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if git diff --quiet origin/develop..HEAD; then
+            echo "changes=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git push --force origin "HEAD:refs/heads/${SYNC_BRANCH}"
+          echo "changes=true" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Report merge conflicts
+        if: steps.merge.outputs.conflict == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CONFLICT_FILES: ${{ steps.merge.outputs.conflict_files }}
+        run: |
+          gh label create upstream-conflict \
+            --color D93F0B \
+            --description "Manual resolution is required before syncing Seerr" \
+            --force
+
+          existing_issue=$(gh issue list \
+            --state open \
+            --label upstream-conflict \
+            --json number \
+            --jq '.[0].number')
+
+          body=$(printf '%s\n\n%s\n\n```text\n%s\n```\n' \
+            "The scheduled merge of \`${UPSTREAM_REPOSITORY}:${UPSTREAM_BRANCH}\` into SeerrPlay failed." \
+            "Resolve the following files locally, then rerun this workflow:" \
+            "$CONFLICT_FILES")
+
+          if [ -n "$existing_issue" ]; then
+            gh issue comment "$existing_issue" --body "$body"
+          else
+            gh issue create \
+              --title "Upstream synchronization requires conflict resolution" \
+              --label upstream-conflict \
+              --body "$body"
+          fi
+
+      - name: Set up pnpm
+        if: steps.merge.outputs.changes == 'true'
+        uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6.0.8
+
+      - name: Set up Node.js
+        if: steps.merge.outputs.changes == 'true'
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: package.json
+          package-manager-cache: false
+
+      - name: Validate synchronized source
+        if: steps.merge.outputs.changes == 'true'
+        env:
+          CI: true
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm typecheck
+          pnpm lint
+          pnpm test
+          pnpm build
+
+      - name: Publish validation status
+        if: steps.merge.outputs.changes == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SYNC_SHA: ${{ steps.merge.outputs.sha }}
+        run: |
+          gh api \
+            --method POST \
+            "repos/${GITHUB_REPOSITORY}/statuses/${SYNC_SHA}" \
+            -f state=success \
+            -f context='Upstream Sync Validation' \
+            -f description='Typecheck, lint, tests, and build passed'
+
+      - name: Open or update synchronization pull request
+        if: steps.merge.outputs.changes == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.UPSTREAM_SYNC_TOKEN || github.token }}
+        run: |
+          gh label create upstream-sync \
+            --color 5319E7 \
+            --description "Automated synchronization with seerr-team/seerr" \
+            --force
+          gh label create automated \
+            --color BFDADC \
+            --description "Created or maintained by automation" \
+            --force
+
+          existing_pr=$(gh pr list \
+            --base develop \
+            --head "${SYNC_BRANCH}" \
+            --state open \
+            --json number \
+            --jq '.[0].number')
+
+          if [ -z "$existing_pr" ]; then
+            gh pr create \
+              --base develop \
+              --head "${SYNC_BRANCH}" \
+              --title "chore(upstream): synchronize Seerr develop" \
+              --label upstream-sync \
+              --label automated \
+              --body-file .github/upstream-sync-pr.md
+          else
+            gh pr comment "$existing_pr" \
+              --body "The synchronization branch was updated to the latest \`${UPSTREAM_REPOSITORY}:${UPSTREAM_BRANCH}\`."
+          fi
+
+          conflict_issue=$(gh issue list \
+            --state open \
+            --label upstream-conflict \
+            --json number \
+            --jq '.[0].number')
+          if [ -n "$conflict_issue" ]; then
+            gh issue close "$conflict_issue" \
+              --comment "The latest upstream synchronization completed without merge conflicts."
+          fi
