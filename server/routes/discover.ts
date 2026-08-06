@@ -1,6 +1,8 @@
+import { getSeasonalAnimeList } from '@server/api/anilist';
 import PlexTvAPI from '@server/api/plextv';
 import type { SortOptions } from '@server/api/themoviedb';
 import TheMovieDb from '@server/api/themoviedb';
+import { ANIME_KEYWORD_ID } from '@server/api/themoviedb/constants';
 import type { TmdbKeyword } from '@server/api/themoviedb/interfaces';
 import { MediaType } from '@server/constants/media';
 import { getRepository } from '@server/datasource';
@@ -9,6 +11,7 @@ import { User } from '@server/entity/User';
 import { Watchlist } from '@server/entity/Watchlist';
 import type {
   GenreSliderItem,
+  SeasonalAnimeResponse,
   WatchlistResponse,
 } from '@server/interfaces/api/discoverInterfaces';
 import { getSettings } from '@server/lib/settings';
@@ -92,6 +95,12 @@ const QueryFilterOptions = z.object({
 export type FilterOptions = z.infer<typeof QueryFilterOptions>;
 const ApiQuerySchema = QueryFilterOptions.omit({
   certificationMode: true,
+});
+const AnimeQuerySchema = ApiQuerySchema.extend({
+  page: z.coerce.number().int().min(1).default(1),
+});
+const SeasonalAnimeQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
 });
 
 discoverRoutes.get('/movies', async (req, res, next) => {
@@ -484,6 +493,99 @@ discoverRoutes.get('/tv', async (req, res, next) => {
     return next({
       status: 500,
       message: 'Unable to retrieve popular series.',
+    });
+  }
+});
+
+discoverRoutes.get('/anime', async (req, res, next) => {
+  const tmdb = createTmdbWithRegionLanguage(req.user);
+
+  try {
+    const query = AnimeQuerySchema.parse(req.query);
+    const keywords = query.keywords;
+    const excludeKeywords = query.excludeKeywords;
+    const data = await tmdb.getDiscoverTv({
+      page: query.page,
+      sortBy: query.sortBy as SortOptions,
+      language: req.locale ?? query.language,
+      genre: query.genre,
+      network: query.network ? Number(query.network) : undefined,
+      firstAirDateLte: query.firstAirDateLte
+        ? new Date(query.firstAirDateLte).toISOString().split('T')[0]
+        : undefined,
+      firstAirDateGte: query.firstAirDateGte
+        ? new Date(query.firstAirDateGte).toISOString().split('T')[0]
+        : undefined,
+      // 'all' bypasses the server-wide original language setting
+      originalLanguage: query.language ?? 'all',
+      keywords: keywords
+        ? `${keywords},${ANIME_KEYWORD_ID}`
+        : String(ANIME_KEYWORD_ID),
+      excludeKeywords,
+      withRuntimeGte: query.withRuntimeGte,
+      withRuntimeLte: query.withRuntimeLte,
+      voteAverageGte: query.voteAverageGte,
+      voteAverageLte: query.voteAverageLte,
+      voteCountGte: query.voteCountGte,
+      voteCountLte: query.voteCountLte,
+      watchProviders: query.watchProviders,
+      watchRegion: query.watchRegion,
+      withStatus: query.status,
+      certification: query.certification,
+      certificationGte: query.certificationGte,
+      certificationLte: query.certificationLte,
+      certificationCountry: query.certificationCountry,
+    });
+
+    const media = await Media.getRelatedMedia(
+      req.user,
+      data.results.map((result) => ({
+        tmdbId: result.id,
+        mediaType: MediaType.TV,
+      }))
+    );
+
+    let keywordData: TmdbKeyword[] = [];
+    if (keywords) {
+      const splitKeywords = keywords.split(',');
+
+      const keywordResults = await Promise.all(
+        splitKeywords.map(async (keywordId) => {
+          return await tmdb.getKeywordDetails({ keywordId: Number(keywordId) });
+        })
+      );
+
+      keywordData = keywordResults.filter(
+        (keyword): keyword is TmdbKeyword => keyword !== null
+      );
+    }
+
+    return res.status(200).json({
+      page: data.page,
+      totalPages: data.total_pages,
+      totalResults: data.total_results,
+      keywords: keywordData,
+      results: data.results.map((result) =>
+        mapTvResult(
+          result,
+          media.find(
+            (med) => med.tmdbId === result.id && med.mediaType === MediaType.TV
+          )
+        )
+      ),
+    });
+  } catch (e) {
+    if (e instanceof z.ZodError) {
+      return next({ status: 400, message: 'Invalid query parameters.' });
+    }
+
+    logger.debug('Something went wrong retrieving anime series', {
+      label: 'API',
+      errorMessage: e.message,
+    });
+    return next({
+      status: 500,
+      message: 'Unable to retrieve anime series.',
     });
   }
 });
@@ -914,6 +1016,45 @@ discoverRoutes.get<{ language: string }, GenreSliderItem[]>(
       return next({
         status: 500,
         message: 'Unable to retrieve series genre slider.',
+      });
+    }
+  }
+);
+
+discoverRoutes.get<Record<string, unknown>, SeasonalAnimeResponse>(
+  '/seasonal-anime',
+  async (req, res, next) => {
+    const itemsPerPage = 20;
+
+    try {
+      const { page } = SeasonalAnimeQuerySchema.parse(req.query);
+      const offset = (page - 1) * itemsPerPage;
+      const items = await getSeasonalAnimeList();
+
+      return res.status(200).json({
+        page,
+        totalPages: Math.ceil(items.length / itemsPerPage),
+        totalResults: items.length,
+        results: items.slice(offset, offset + itemsPerPage).map((item) => ({
+          id: item.tmdbId,
+          ratingKey: String(item.anilistId),
+          tmdbId: item.tmdbId,
+          mediaType: 'tv' as const,
+          title: item.title,
+        })),
+      });
+    } catch (e) {
+      if (e instanceof z.ZodError) {
+        return next({ status: 400, message: 'Invalid query parameters.' });
+      }
+
+      logger.debug('Something went wrong retrieving seasonal anime', {
+        label: 'API',
+        errorMessage: e.message,
+      });
+      return next({
+        status: 500,
+        message: 'Unable to retrieve seasonal anime.',
       });
     }
   }
