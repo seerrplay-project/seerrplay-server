@@ -51,9 +51,9 @@ then, both duplicate-detection workflows remain safely skipped.
 
 Container publishing targets only
 `ghcr.io/seerrplay-project/seerrplay-server`. After the first `latest` image is
-published, set `ENABLE_CONTAINER_RELEASES` to `true` to enable the scheduled
-Trivy scan. Release signing uses GitHub's OIDC identity and does not require a
-stored Cosign private key.
+ready to be published, set `ENABLE_CONTAINER_RELEASES` to `true` to enable Helm
+chart publishing and the scheduled Trivy scan. Release signing uses GitHub's
+OIDC identity and does not require a stored Cosign private key.
 
 ### Documentation website
 
