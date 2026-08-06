@@ -1,77 +1,137 @@
 <p align="center">
-<img src="./public/logo_full.svg" alt="Seerr" style="margin: 20px 0;">
+  <a href="https://seerrplay.dev">
+    <img
+      src="https://raw.githubusercontent.com/seerrplay-project/seerrplay/main/apps/seerrplay/assets/branding/seerrplay_primary_logo.svg"
+      alt="SeerrPlay"
+      width="440"
+    />
+  </a>
 </p>
+
 <p align="center">
-<img src="https://github.com/seerr-team/seerr/actions/workflows/release.yml/badge.svg" alt="Seerr Release" />
-<img src="https://github.com/seerr-team/seerr/actions/workflows/ci.yml/badge.svg" alt="Seerr CI">
+  <strong>Discover, request, and play your self-hosted media from one ecosystem.</strong>
 </p>
+
 <p align="center">
-<a href="https://discord.gg/seerr"><img src="https://img.shields.io/discord/783137440809746482" alt="Discord"></a>
-<a href="https://hub.docker.com/r/seerr/seerr"><img src="https://img.shields.io/docker/pulls/seerr/seerr" alt="Docker pulls"></a>
-<a href="https://translate.seerr.dev/engage/seerr/"><img src="https://translate.seerr.dev/widget/seerr/svg-badge.svg" alt="Translation status" /></a>
-<a href="https://github.com/seerr-team/seerr/blob/develop/LICENSE"><img alt="GitHub" src="https://img.shields.io/github/license/seerr-team/seerr"></a>
+  <a href="https://github.com/seerrplay-project/seerrplay-server/actions/workflows/ci.yml"><img src="https://github.com/seerrplay-project/seerrplay-server/actions/workflows/ci.yml/badge.svg?branch=develop" alt="SeerrPlay Server CI" /></a>
+  <a href="https://github.com/seerrplay-project/seerrplay-server/actions/workflows/upstream-sync.yml"><img src="https://github.com/seerrplay-project/seerrplay-server/actions/workflows/upstream-sync.yml/badge.svg?branch=develop" alt="Seerr upstream synchronization" /></a>
+  <a href="https://github.com/seerrplay-project/seerrplay-server/actions/workflows/codeql.yml"><img src="https://github.com/seerrplay-project/seerrplay-server/actions/workflows/codeql.yml/badge.svg?branch=develop" alt="CodeQL" /></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/github/license/seerrplay-project/seerrplay-server" alt="MIT license" /></a>
+</p>
 
-**Seerr** is a free and open source software application for managing requests for your media library. It integrates with the media server of your choice: [Jellyfin](https://jellyfin.org), [Plex](https://plex.tv), and [Emby](https://emby.media/). In addition, it integrates with your existing services, such as **[Sonarr](https://sonarr.tv/)**, **[Radarr](https://radarr.video/)**.
+> [!IMPORTANT]
+> **SeerrPlay Server is an independent community fork of
+> [Seerr](https://github.com/seerr-team/seerr). It is not affiliated with or
+> endorsed by the Seerr team.**
 
-## Current Features
+## What is SeerrPlay Server?
 
-- Full Jellyfin/Emby/Plex integration including authentication with user import & management.
-- Support for **PostgreSQL** and **SQLite** databases.
-- Supports Movies, Shows and Mixed Libraries.
-- Ability to change email addresses for SMTP purposes.
-- Easy integration with your existing services. Currently, Seerr supports Sonarr and Radarr. More to come!
-- Jellyfin/Emby/Plex library scan, to keep track of the titles which are already available.
-- Customizable request system, which allows users to request individual seasons or movies in a friendly, easy-to-use interface.
-- Incredibly simple request management UI. Don't dig through the app to simply approve recent requests!
-- Granular permission system.
-- Support for various notification agents.
-- Mobile-friendly design, for when you need to approve requests on the go!
-- Support for watchlisting & blocklisting media.
+SeerrPlay Server is the self-hosted server component planned for the SeerrPlay
+ecosystem. It starts from Seerr's mature request-management foundation and will
+add APIs and playback orchestration designed for the
+[SeerrPlay applications](https://github.com/seerrplay-project/seerrplay).
 
-With more features on the way! Check out our [issue tracker](/../../issues) to see the features which have already been requested.
+The project remains compatible with Jellyfin, Plex, Emby, Sonarr, and Radarr.
+Media stays on infrastructure selected and controlled by the user; SeerrPlay
+does not provide or host media content.
 
-## Getting Started
+## Project status
 
-Check out our documentation for instructions on how to install and run Seerr:
+The fork currently tracks Seerr's `develop` branch while the SeerrPlay-specific
+architecture is being introduced. Until the first SeerrPlay Server release,
+production users should continue using an official stable Seerr release.
 
-https://docs.seerr.dev/getting-started/
+Planned SeerrPlay additions include:
 
-## Preview
+- A typed application API with GraphQL queries, mutations, and subscriptions
+- A common playback-session model for Jellyfin, Plex, and Emby
+- Real-time request, availability, and download progress
+- APIs optimized for mobile, television, and desktop clients
+- A redesigned web experience with integrated playback
 
-<img src="./public/preview.jpg" alt="Seerr application preview" />
+## Repository family
 
-## Migrating from Overseerr/Jellyseerr to Seerr
+| Repository | Purpose |
+| --- | --- |
+| [`seerrplay`](https://github.com/seerrplay-project/seerrplay) | Flutter and native applications for mobile, TV, and desktop |
+| [`seerrplay-server`](https://github.com/seerrplay-project/seerrplay-server) | Self-hosted server and Seerr community fork |
+| [`seerrplay-website`](https://github.com/seerrplay-project/seerrplay-website) | Public website for the project |
 
-Read our [release announcement](https://docs.seerr.dev/blog/seerr-release) to learn what Seerr means for Jellyseerr and Overseerr users.
+Visit [seerrplay.dev](https://seerrplay.dev) or join the
+[SeerrPlay Discord](https://discord.gg/GMunyuG3wg).
 
-Please follow our [migration guide](https://docs.seerr.dev/migration-guide) for detailed instructions on migrating from Overseerr or Jellyseerr.
+## Upstream maintenance
 
-## Support
+The `upstream-develop` branch is an exact mirror of
+`seerr-team/seerr:develop`. A weekly GitHub Actions workflow prepares a tested
+merge and opens a pull request into `develop`. It never merges upstream changes
+automatically.
 
-- Check out the [Seerr Documentation](https://docs.seerr.dev) before asking for help. Your question might already be in the docs!
-- You can get support on [Discord](https://discord.gg/seerr).
-- You can ask questions in the Help category of our [GitHub Discussions](/../../discussions).
-- Bug reports and feature requests can be submitted via [GitHub Issues](/../../issues).
+See [`docs/UPSTREAM_SYNC.md`](./docs/UPSTREAM_SYNC.md) for branch conventions,
+manual conflict resolution, and the process for contributing suitable changes
+back to Seerr.
 
-## API Documentation
+The repository also inherits Seerr's pull-request validation, labelling,
+stale-issue management, CodeQL, Renovate configuration, and optional duplicate
+issue detection. See [`docs/AUTOMATION.md`](./docs/AUTOMATION.md) for the enabled
+bots and their required settings.
 
-You can access the API documentation from your local Seerr install at http://localhost:5055/api-docs
+## Development
 
-## Community
+The upstream toolchain currently requires Node.js 22 and pnpm 10.
 
-You can ask questions, share ideas, and more in [GitHub Discussions](/../../discussions).
+```bash
+git clone https://github.com/seerrplay-project/seerrplay-server.git
+cd seerrplay-server
+pnpm install
+pnpm dev
+```
 
-If you would like to chat with other members of our growing community, [join the Seerr Discord server](https://discord.gg/seerr)!
+Before opening a pull request, run:
 
-Our [Code of Conduct](./CODE_OF_CONDUCT.md) applies to all Seerr community channels.
+```bash
+pnpm typecheck
+pnpm lint
+pnpm test
+pnpm build
+```
 
-## Contributing
+Pull requests target `develop`, use Conventional Commit titles, complete the PR
+template, and keep SeerrPlay-specific changes isolated from upstream code where
+practical. See [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
-You can help improve Seerr too! Check out our [Contribution Guide](./CONTRIBUTING.md) to get started.
+## Existing Seerr capabilities
 
-## Contributors ✨
+The inherited Seerr foundation includes:
 
-[![Contributors](https://opencollective.com/seerr/contributors.svg?width=890)](https://opencollective.com/seerr/#backers)
+- Jellyfin, Plex, and Emby authentication and library synchronization
+- Movie, series, season, and mixed-library requests
+- Sonarr and Radarr integration
+- SQLite and PostgreSQL support
+- Granular permissions and notification agents
+- Watchlists, blocklists, localization, and scheduled jobs
+- REST API documentation at `/api-docs` on a running server
 
-[![Become a Backer](https://opencollective.com/seerr/backers.svg)](https://opencollective.com/seerr/#backers)
-[![Become a Sponsor](https://opencollective.com/seerr/sponsors.svg)](https://opencollective.com/seerr/#sponsors)
+For documentation about existing Seerr behavior, visit
+[docs.seerr.dev](https://docs.seerr.dev).
+
+## Security and privacy
+
+Do not include access tokens, media-server URLs, API keys, or personal library
+data in issues. Report security problems privately according to
+[`SECURITY.md`](./SECURITY.md).
+
+SeerrPlay clients only access servers configured by the user. The project does
+not include torrent, Usenet, indexer, DRM-circumvention, or third-party media
+downloading functionality.
+
+## Attribution and license
+
+SeerrPlay Server is based on Seerr and retains Seerr's MIT license and copyright
+notice. We are grateful to the Seerr, Overseerr, and Jellyseerr contributors
+whose work provides the project's foundation.
+
+SeerrPlay is not affiliated with Jellyfin, Plex, Emby, Sonarr, Radarr, or TMDB.
+Their names and trademarks belong to their respective owners.
+
+Licensed under the [MIT License](./LICENSE).

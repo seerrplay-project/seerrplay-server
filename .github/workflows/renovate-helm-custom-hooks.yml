@@ -22,7 +22,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    if: github.actor == 'renovate[bot]'
+    if: github.actor == 'renovate[bot]' && vars.ENABLE_HELM_AUTOMATION == 'true'
     steps:
       - parallel:
           - name: Checkout code

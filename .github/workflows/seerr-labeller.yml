@@ -1,6 +1,6 @@
 ---
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
-name: 'Seerr Labeller'
+name: 'SeerrPlay Labeller'
 
 on:
   pull_request_target:
@@ -88,9 +88,9 @@ jobs:
                 :wave: @${{ env.ISSUE_AUTHOR }}, we use the issue tracker exclusively
                 for bug reports and feature requests. However, this issue appears
                 to be a support request. Please use our support channels
-                to get help with Seerr.
+                to get help with SeerrPlay Server.
 
-                - [Discord](https://discord.gg/seerr)
+                - [Discord](https://discord.gg/GMunyuG3wg)
             run: |
               retry() { n=0; until "$@"; do n=$((n+1)); [ $n -ge 3 ] && break; echo "retry $n: $*" >&2; sleep 2; done; }
               retry gh issue comment "$NUMBER" -R "$GH_REPO" -b "$BODY" || true

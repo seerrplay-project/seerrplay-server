@@ -73,7 +73,7 @@ jobs:
           build: pnpm cypress:build
           start: pnpm start
           wait-on: 'http://localhost:5055'
-          record: true
+          record: ${{ secrets.CYPRESS_RECORD_KEY != '' }}
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
