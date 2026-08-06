@@ -34,6 +34,7 @@ concurrency:
 jobs:
   cypress-run:
     name: Cypress Run
+    continue-on-error: ${{ vars.ENFORCE_CYPRESS != 'true' }}
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout

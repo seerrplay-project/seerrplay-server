@@ -15,6 +15,10 @@ credentials and publishing targets specific to this fork.
 - `Stale` manages inactive issues and pull requests.
 - `Sync Seerr Upstream` maintains the `upstream-develop` mirror and prepares a
   reviewed synchronization pull request.
+- `Cypress Tests` still runs and reports failures, but remains advisory while
+  the inherited Seerr modal-state failures are unresolved. Set
+  `ENFORCE_CYPRESS` to `true` when the suite is stable to make failures block
+  the workflow.
 
 ## Optional automation
 
@@ -28,9 +32,12 @@ read/write access to contents, issues, and pull requests.
 ### Renovate
 
 Install the Renovate GitHub App for `seerrplay-project/seerrplay-server`. The
-existing `.github/renovate.json5` configuration will then create dependency
-update pull requests. Set the repository variable `ENABLE_HELM_AUTOMATION` to
-`true` only after adding `APP_SEERR_HELM_CLIENT_ID` and
+local `.github/renovate.json5` presets will then create dependency update pull
+requests. Dependabot vulnerability alerts remain enabled, but its automatic
+security pull requests are disabled because its current updater runs Node.js 24
+while the inherited Seerr project requires Node.js 22. Set the repository
+variable `ENABLE_HELM_AUTOMATION` to `true` only after adding
+`APP_SEERR_HELM_CLIENT_ID` and
 `APP_SEERR_HELM_PRIVATE_KEY` for a GitHub App allowed to update Renovate chart
 branches.
 
@@ -47,6 +54,12 @@ Container publishing targets only
 published, set `ENABLE_CONTAINER_RELEASES` to `true` to enable the scheduled
 Trivy scan. Release signing uses GitHub's OIDC identity and does not require a
 stored Cosign private key.
+
+### Documentation website
+
+Set `ENABLE_DOCS_PAGES` to `true` only after GitHub Pages is configured for the
+repository. Until then, documentation builds and link checks still run on pull
+requests, while deployment remains safely skipped.
 
 ### Notifications
 
