@@ -11,8 +11,10 @@ import type {
   TmdbKeyword,
   TmdbTvDetails,
 } from '@server/api/themoviedb/interfaces';
+import { MediaStatus } from '@server/constants/media';
 import { MediaServerType } from '@server/constants/server';
 import { getRepository } from '@server/datasource';
+import Media from '@server/entity/Media';
 import { User } from '@server/entity/User';
 import type {
   ProcessableSeason,
@@ -24,6 +26,7 @@ import type { Library } from '@server/lib/settings';
 import { getSettings } from '@server/lib/settings';
 import { getHostname } from '@server/utils/getHostname';
 import { uniqWith } from 'lodash';
+import { IsNull, Not } from 'typeorm';
 
 interface JellyfinSyncStatus extends StatusBase {
   currentLibrary: Library;
@@ -39,6 +42,7 @@ class JellyfinScanner
   private currentLibrary: Library;
   private isRecentOnly = false;
   private processedAnidbSeason: Map<number, Map<number, number>>;
+  private seenJellyfinMediaIds = new Set<string>();
 
   constructor({ isRecentOnly }: { isRecentOnly?: boolean } = {}) {
     super('Jellyfin Sync');
@@ -126,6 +130,8 @@ class JellyfinScanner
       if (!extracted) return;
 
       const { tmdbId, imdbId, metadata } = extracted;
+      this.seenJellyfinMediaIds.add(jellyfinitem.Id);
+      this.seenJellyfinMediaIds.add(metadata.Id);
 
       const has4k = metadata.MediaSources?.some((MediaSource) => {
         return MediaSource.MediaStreams.filter(
@@ -228,6 +234,9 @@ class JellyfinScanner
         });
         return;
       }
+
+      this.seenJellyfinMediaIds.add(jellyfinitem.Id);
+      this.seenJellyfinMediaIds.add(metadata.Id);
 
       if (metadata.ProviderIds.Tmdb || metadata.ProviderIds.TheMovieDb) {
         try {
@@ -451,6 +460,53 @@ class JellyfinScanner
     }
   }
 
+  private async reconcileRemovedMedia(): Promise<void> {
+    const mediaRepository = getRepository(Media);
+    const linkedMedia = await mediaRepository.find({
+      where: [
+        { jellyfinMediaId: Not(IsNull()) },
+        { jellyfinMediaId4k: Not(IsNull()) },
+      ],
+      relations: { seasons: true },
+    });
+
+    for (const media of linkedMedia) {
+      let changed = false;
+
+      if (
+        media.jellyfinMediaId &&
+        !this.seenJellyfinMediaIds.has(media.jellyfinMediaId)
+      ) {
+        media.status = MediaStatus.UNKNOWN;
+        media.jellyfinMediaId = null;
+        media.mediaAddedAt = null;
+        for (const season of media.seasons) {
+          season.status = MediaStatus.UNKNOWN;
+        }
+        changed = true;
+      }
+
+      if (
+        media.jellyfinMediaId4k &&
+        !this.seenJellyfinMediaIds.has(media.jellyfinMediaId4k)
+      ) {
+        media.status4k = MediaStatus.UNKNOWN;
+        media.jellyfinMediaId4k = null;
+        for (const season of media.seasons) {
+          season.status4k = MediaStatus.UNKNOWN;
+        }
+        changed = true;
+      }
+
+      if (changed) {
+        await mediaRepository.save(media);
+        this.log(
+          `Removed stale Jellyfin availability for TMDB ${media.tmdbId}`
+        );
+      }
+    }
+  }
+
   public async run(): Promise<void> {
     const settings = getSettings();
 
@@ -516,6 +572,7 @@ class JellyfinScanner
           await this.loop(this.processItem.bind(this), { sessionId });
         }
       } else {
+        this.seenJellyfinMediaIds = new Set();
         for (const library of this.libraries) {
           this.currentLibrary = library;
           // Reset AniDB season tracking per library
@@ -524,6 +581,7 @@ class JellyfinScanner
           this.items = await this.jfClient.getLibraryContents(library.id);
           await this.loop(this.processItem.bind(this), { sessionId });
         }
+        await this.reconcileRemovedMedia();
       }
 
       this.log(
