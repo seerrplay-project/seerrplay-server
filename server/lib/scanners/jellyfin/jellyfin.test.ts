@@ -502,4 +502,40 @@ describe('Jellyfin Scanner', () => {
       );
     });
   });
+
+  describe('removed Jellyfin media reconciliation', () => {
+    it('should clear stale Jellyfin availability while preserving the media record', async () => {
+      configureJellyfinWithLibrary();
+
+      const mediaRepository = getRepository(Media);
+      const media = new Media({
+        tmdbId: 6000,
+        mediaType: MediaType.TV,
+        status: MediaStatus.AVAILABLE,
+        jellyfinMediaId: 'removed-jellyfin-id',
+        mediaAddedAt: new Date('2026-01-01T00:00:00Z'),
+        seasons: [
+          new Season({
+            seasonNumber: 1,
+            status: MediaStatus.AVAILABLE,
+            status4k: MediaStatus.UNKNOWN,
+          }),
+        ],
+      });
+      await mediaRepository.save(media);
+
+      getLibraryContentsImpl = async () => [];
+      await jellyfinFullScanner.run();
+
+      const updated = await mediaRepository.findOneOrFail({
+        where: { tmdbId: 6000 },
+        relations: ['seasons'],
+      });
+
+      assert.strictEqual(updated.status, MediaStatus.UNKNOWN);
+      assert.strictEqual(updated.jellyfinMediaId, null);
+      assert.strictEqual(updated.mediaAddedAt, null);
+      assert.strictEqual(updated.seasons[0]?.status, MediaStatus.UNKNOWN);
+    });
+  });
 });
