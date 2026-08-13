@@ -466,6 +466,7 @@ class JellyfinScanner
       where: [
         { jellyfinMediaId: Not(IsNull()) },
         { jellyfinMediaId4k: Not(IsNull()) },
+        { mediaAddedAt: Not(IsNull()) },
       ],
       relations: { seasons: true },
     });
@@ -495,6 +496,15 @@ class JellyfinScanner
         for (const season of media.seasons) {
           season.status4k = MediaStatus.UNKNOWN;
         }
+        changed = true;
+      }
+
+      if (
+        media.mediaAddedAt &&
+        !media.jellyfinMediaId &&
+        !media.jellyfinMediaId4k
+      ) {
+        media.mediaAddedAt = null;
         changed = true;
       }
 
