@@ -524,6 +524,15 @@ describe('Jellyfin Scanner', () => {
       });
       await mediaRepository.save(media);
 
+      const orphanedMedia = await mediaRepository.save(
+        new Media({
+          tmdbId: 6001,
+          mediaType: MediaType.MOVIE,
+          status: MediaStatus.UNKNOWN,
+          mediaAddedAt: new Date('2025-12-01T00:00:00Z'),
+        })
+      );
+
       getLibraryContentsImpl = async () => [];
       await jellyfinFullScanner.run();
 
@@ -536,6 +545,11 @@ describe('Jellyfin Scanner', () => {
       assert.strictEqual(updated.jellyfinMediaId, null);
       assert.strictEqual(updated.mediaAddedAt, null);
       assert.strictEqual(updated.seasons[0]?.status, MediaStatus.UNKNOWN);
+
+      const updatedOrphan = await mediaRepository.findOneOrFail({
+        where: { id: orphanedMedia.id },
+      });
+      assert.strictEqual(updatedOrphan.mediaAddedAt, null);
     });
   });
 });
