@@ -17,6 +17,7 @@ export interface CalendarItem {
 
 export interface CalendarResponse {
   week: string;
+  weeks: number;
   timezone: string;
   items: CalendarItem[];
   degraded: boolean;

@@ -67,20 +67,37 @@ export const isCalendarWeekAllowed = (week: string, now = new Date()) => {
   return delta >= -CALENDAR_PAST_DAYS && delta <= CALENDAR_FUTURE_DAYS;
 };
 
+export const isCalendarRangeAllowed = (
+  week: string,
+  weeks: number,
+  now = new Date()
+) => {
+  const date = new Date(`${week}T00:00:00.000Z`);
+  const today = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  );
+  const startDelta = (date.getTime() - today.getTime()) / 86400000;
+  const endDelta = startDelta + weeks * 7 - 1;
+
+  return startDelta >= -CALENDAR_PAST_DAYS && endDelta <= CALENDAR_FUTURE_DAYS;
+};
+
 export const getCalendar = async ({
   week,
   timezone,
+  weeks = 1,
 }: {
   week: string;
   timezone: string;
+  weeks?: number;
 }): Promise<CalendarResponse> => {
   const cache = cacheManager.getCache('calendar').data;
-  const cacheKey = `${week}:${timezone}`;
+  const cacheKey = `${week}:${weeks}:${timezone}`;
   const cached = cache.get<CalendarResponse>(cacheKey);
   if (cached) return cached;
   const pending = inflight.get(cacheKey);
   if (pending) return pending;
-  const request = buildCalendar({ week, timezone });
+  const request = buildCalendar({ week, timezone, weeks });
   inflight.set(cacheKey, request);
   try {
     return await request;
@@ -92,15 +109,17 @@ export const getCalendar = async ({
 const buildCalendar = async ({
   week,
   timezone,
+  weeks,
 }: {
   week: string;
   timezone: string;
+  weeks: number;
 }): Promise<CalendarResponse> => {
   const settings = getSettings();
-  const cacheKey = `${week}:${timezone}`;
+  const cacheKey = `${week}:${weeks}:${timezone}`;
   const monday = new Date(`${week}T00:00:00.000Z`);
   const end = new Date(monday);
-  end.setUTCDate(end.getUTCDate() + 7);
+  end.setUTCDate(end.getUTCDate() + weeks * 7);
   // Extra UTC day on both sides ensures all local dates are represented for IANA zones.
   const startMargin = new Date(monday);
   startMargin.setUTCDate(startMargin.getUTCDate() - 1);
@@ -228,6 +247,7 @@ const buildCalendar = async ({
   );
   const response: CalendarResponse = {
     week,
+    weeks,
     timezone,
     items: [...items.values()].sort(
       (a, b) =>

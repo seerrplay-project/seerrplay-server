@@ -21,7 +21,7 @@
   "components.Calendar.cinema": "Cinema",
   "components.Calendar.degraded": "Some calendar sources are temporarily unavailable.",
   "components.Calendar.digital": "Digital",
-  "components.Calendar.empty": "No upcoming releases for this week.",
+  "components.Calendar.empty": "No releases for this period.",
   "components.Calendar.error": "Unable to load the calendar.",
   "components.Calendar.lastWeekday": "Last {weekday}",
   "components.Calendar.loading": "Loading calendar…",
