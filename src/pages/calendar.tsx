@@ -21,6 +21,9 @@ const messages = defineMessages('components.Calendar', {
   title: 'My releases',
   previous: 'Previous',
   today: 'Today',
+  yesterday: 'Yesterday',
+  tomorrow: 'Tomorrow',
+  nextWeekday: 'Next {weekday}',
   next: 'Next',
   all: 'All',
   movies: 'Movies',
@@ -51,6 +54,24 @@ const shiftWeek = (week: string, offset: number) => {
   const date = new Date(year, month - 1, day);
   date.setDate(date.getDate() + offset * 7);
   return localDate(date);
+};
+
+const parseCalendarDate = (day: string) => {
+  const [year, month, date] = day.split('-').map(Number);
+  return new Date(year, month - 1, date, 12);
+};
+
+const calendarDayOffset = (day: string, reference: string) => {
+  const [year, month, date] = day.split('-').map(Number);
+  const [referenceYear, referenceMonth, referenceDate] = reference
+    .split('-')
+    .map(Number);
+
+  return (
+    (Date.UTC(year, month - 1, date) -
+      Date.UTC(referenceYear, referenceMonth - 1, referenceDate)) /
+    86400000
+  );
 };
 
 const getPosterType = (posterUrl?: string) => {
@@ -102,12 +123,52 @@ const Calendar: NextPage = () => {
     return grouped;
   }, [days, filteredItems]);
   const formatDay = (day: string) => {
-    const [year, month, date] = day.split('-').map(Number);
     return new Intl.DateTimeFormat(undefined, {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
-    }).format(new Date(year, month - 1, date, 12));
+    }).format(parseCalendarDate(day));
+  };
+  const formatDayHeading = (day: string) => {
+    const offset = calendarDayOffset(day, today);
+    const exactDate = new Intl.DateTimeFormat(undefined, {
+      day: 'numeric',
+      month: 'long',
+      ...(day.slice(0, 4) !== today.slice(0, 4) && {
+        year: 'numeric',
+      }),
+    }).format(parseCalendarDate(day));
+
+    if (offset === -1) {
+      return {
+        label: intl.formatMessage(messages.yesterday),
+        detail: exactDate,
+      };
+    }
+    if (offset === 0) {
+      return {
+        label: intl.formatMessage(messages.today),
+        detail: exactDate,
+      };
+    }
+    if (offset === 1) {
+      return {
+        label: intl.formatMessage(messages.tomorrow),
+        detail: exactDate,
+      };
+    }
+    if (offset >= 2 && offset <= 7) {
+      const weekday = new Intl.DateTimeFormat(undefined, {
+        weekday: 'long',
+      }).format(parseCalendarDate(day));
+
+      return {
+        label: intl.formatMessage(messages.nextWeekday, { weekday }),
+        detail: exactDate,
+      };
+    }
+
+    return { label: formatDay(day) };
   };
   const typeLabel = (type: 'movie' | 'tv' | 'anime') =>
     intl.formatMessage(
@@ -121,7 +182,7 @@ const Calendar: NextPage = () => {
           <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
             {intl.formatMessage(messages.title)}
           </h1>
-          <p className="mt-1 text-sm capitalize text-gray-400">
+          <p className="mt-1 text-sm text-gray-400 first-letter:uppercase">
             {formatDay(days[0])} — {formatDay(days[6])}
           </p>
         </div>
@@ -196,6 +257,7 @@ const Calendar: NextPage = () => {
           {days.map((day) => {
             const dayItems = itemsByDay.get(day) ?? [];
             const isToday = day === today;
+            const dayHeading = formatDayHeading(day);
 
             return (
               <section
@@ -205,17 +267,19 @@ const Calendar: NextPage = () => {
                 }`}
               >
                 <div className="flex items-center gap-3 border-b border-gray-700/60 px-4 py-3 sm:px-5">
-                  <time
-                    dateTime={day}
-                    className="text-base font-semibold capitalize text-white sm:text-lg"
-                  >
-                    {formatDay(day)}
-                  </time>
-                  {isToday && (
-                    <span className="rounded-full bg-indigo-500/20 px-2.5 py-1 text-xs font-medium text-indigo-200 ring-1 ring-inset ring-indigo-400/30">
-                      {intl.formatMessage(messages.today)}
-                    </span>
-                  )}
+                  <div className="min-w-0">
+                    <time
+                      dateTime={day}
+                      className="block text-base font-semibold text-white first-letter:uppercase sm:text-lg"
+                    >
+                      {dayHeading.label}
+                    </time>
+                    {dayHeading.detail && (
+                      <p className="mt-0.5 text-xs text-gray-400 sm:text-sm">
+                        {dayHeading.detail}
+                      </p>
+                    )}
+                  </div>
                   <span className="ml-auto min-w-7 rounded-full bg-gray-800 px-2 py-1 text-center text-xs font-medium tabular-nums text-gray-300">
                     {dayItems.length}
                   </span>
