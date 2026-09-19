@@ -84,6 +84,9 @@ class RadarrAPI extends ServarrBase<{ movieId: number }> {
     end: string;
   }): Promise<RadarrCalendarItem[]> {
     try {
+      // The request target comes exclusively from admin-managed Radarr settings;
+      // calendar callers can only influence the bounded query parameters below.
+      // codeql[js/request-forgery]
       const response = await this.axios.get<RadarrCalendarItem[]>('/calendar', {
         params: { start, end, unmonitored: false },
       });

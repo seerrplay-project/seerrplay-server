@@ -131,6 +131,9 @@ class SonarrAPI extends ServarrBase<{
     end: string;
   }): Promise<SonarrCalendarItem[]> {
     try {
+      // The request target comes exclusively from admin-managed Sonarr settings;
+      // calendar callers can only influence the bounded query parameters below.
+      // codeql[js/request-forgery]
       const response = await this.axios.get<SonarrCalendarItem[]>('/calendar', {
         params: { start, end, includeSeries: true, unmonitored: false },
       });
