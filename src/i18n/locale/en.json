@@ -26,6 +26,7 @@
   "components.Calendar.loading": "Loading calendar…",
   "components.Calendar.movies": "Movies",
   "components.Calendar.next": "Next",
+  "components.Calendar.noReleases": "No releases",
   "components.Calendar.physical": "Physical",
   "components.Calendar.previous": "Previous",
   "components.Calendar.series": "Series",

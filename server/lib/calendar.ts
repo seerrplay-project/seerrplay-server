@@ -22,6 +22,27 @@ const zonedDate = (value: string, timezone: string) => {
   return `${valueFor('year')}-${valueFor('month')}-${valueFor('day')}`;
 };
 
+const getPosterUrl = (
+  remotePoster?: string,
+  images?: { coverType: string; remoteUrl?: string }[]
+) => {
+  const imageUrl =
+    remotePoster ||
+    images?.find((image) => image.coverType.toLowerCase() === 'poster')
+      ?.remoteUrl;
+
+  if (!imageUrl) return undefined;
+
+  try {
+    const url = new URL(imageUrl);
+    return ['http:', 'https:'].includes(url.protocol)
+      ? url.toString()
+      : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 export const CALENDAR_PAST_DAYS = 366;
 export const CALENDAR_FUTURE_DAYS = 365 * 3;
 const DEGRADED_CACHE_TTL_SECONDS = 60;
@@ -145,17 +166,21 @@ const buildCalendar = async ({
     if (date < week || date >= new Date(end).toISOString().slice(0, 10)) return;
     const type = episode.series.seriesType === 'anime' ? 'anime' : 'tv';
     const key = `${type}:${mediaItem.tmdbId}:${episode.seasonNumber}:${episode.episodeNumber}:${date}`;
+    const prior = items.get(key);
     items.set(key, {
       id: key,
       type,
       tmdbId: mediaItem.tmdbId,
       title: episode.series.title,
+      posterUrl:
+        getPosterUrl(episode.series.remotePoster, episode.series.images) ??
+        prior?.posterUrl,
       date,
       airDateUtc: episode.airDateUtc,
       seasonNumber: episode.seasonNumber,
       episodeNumber: episode.episodeNumber,
       episodeTitle: episode.title,
-      has4k: Boolean(items.get(key)?.has4k || is4k),
+      has4k: Boolean(prior?.has4k || is4k),
     });
   };
   const addMovie = (movie: RadarrCalendarItem, is4k: boolean) => {
@@ -180,6 +205,8 @@ const buildCalendar = async ({
         type: 'movie',
         tmdbId: movie.tmdbId,
         title: movie.title,
+        posterUrl:
+          getPosterUrl(movie.remotePoster, movie.images) ?? prior?.posterUrl,
         date,
         releaseTypes: [...new Set([...(prior?.releaseTypes ?? []), kind])],
         has4k: Boolean(prior?.has4k || is4k),

@@ -5,6 +5,7 @@ export interface CalendarItem {
   type: CalendarItemType;
   tmdbId: number;
   title: string;
+  posterUrl?: string;
   date: string;
   airDateUtc?: string;
   seasonNumber?: number;
