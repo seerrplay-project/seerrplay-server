@@ -5,6 +5,9 @@ import rateLimit from 'express-rate-limit';
 const calendarRoutes = Router();
 const weekPattern = /^\d{4}-\d{2}-\d{2}$/;
 
+export const parseCalendarWeeks = (value: unknown) =>
+  value === undefined ? 1 : Number(value);
+
 calendarRoutes.get(
   '/',
   rateLimit({ windowMs: 60 * 1000, max: 30 }),
@@ -12,9 +15,7 @@ calendarRoutes.get(
     const week = typeof req.query.week === 'string' ? req.query.week : '';
     const timezone =
       typeof req.query.timezone === 'string' ? req.query.timezone : '';
-    const weeksValue =
-      typeof req.query.weeks === 'string' ? req.query.weeks : '1';
-    const weeks = Number(weeksValue);
+    const weeks = parseCalendarWeeks(req.query.weeks);
     const parsed = new Date(`${week}T00:00:00.000Z`);
     if (
       !weekPattern.test(week) ||
@@ -27,7 +28,7 @@ calendarRoutes.get(
         message: 'week must be a Monday in YYYY-MM-DD format.',
       });
     }
-    if (!/^[1-3]$/.test(weeksValue)) {
+    if (!Number.isInteger(weeks) || weeks < 1 || weeks > 3) {
       return next({
         status: 400,
         message: 'weeks must be an integer between 1 and 3.',
