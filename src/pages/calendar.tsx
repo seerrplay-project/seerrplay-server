@@ -265,24 +265,21 @@ const Calendar: NextPage = () => {
       )}
       {!data && !error && <p>{intl.formatMessage(messages.loading)}</p>}
       {data && (
-        <div className="space-y-4">
+        <div className="space-y-8">
           {days.map((day) => {
             const dayItems = itemsByDay.get(day) ?? [];
             const isToday = day === today;
             const dayHeading = formatDayHeading(day);
 
             return (
-              <section
-                key={day}
-                className={`overflow-hidden rounded-2xl border bg-gray-900/40 shadow-sm ${
-                  isToday ? 'border-indigo-500/60' : 'border-gray-700/70'
-                }`}
-              >
-                <div className="flex items-center gap-3 border-b border-gray-700/60 px-4 py-3 sm:px-5">
+              <section key={day}>
+                <div className="mb-3 flex items-center gap-3">
                   <div className="min-w-0">
                     <time
                       dateTime={day}
-                      className="block text-base font-semibold text-white first-letter:uppercase sm:text-lg"
+                      className={`block text-xl font-bold leading-7 first-letter:uppercase sm:text-2xl sm:leading-9 ${
+                        isToday ? 'text-white' : 'text-gray-300'
+                      }`}
                     >
                       {dayHeading.label}
                     </time>
@@ -292,12 +289,12 @@ const Calendar: NextPage = () => {
                       </p>
                     )}
                   </div>
-                  <span className="ml-auto min-w-7 rounded-full bg-gray-800 px-2 py-1 text-center text-xs font-medium tabular-nums text-gray-300">
+                  <span className="ml-auto text-xs font-medium tabular-nums text-gray-500">
                     {dayItems.length}
                   </span>
                 </div>
                 {dayItems.length > 0 ? (
-                  <div className="flex snap-x gap-3 overflow-x-auto px-4 py-4 sm:gap-4 sm:px-5">
+                  <div className="hide-scrollbar -mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2 sm:gap-4">
                     {dayItems.map((item) => {
                       const isMovie = item.type === 'movie';
                       const TypeIcon = isMovie
@@ -377,7 +374,7 @@ const Calendar: NextPage = () => {
                     })}
                   </div>
                 ) : (
-                  <div className="flex min-h-24 items-center justify-center px-5 py-6 text-sm text-gray-500">
+                  <div className="py-2 text-sm text-gray-500">
                     {intl.formatMessage(messages.noReleases)}
                   </div>
                 )}
