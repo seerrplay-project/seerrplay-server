@@ -24,7 +24,13 @@ import type { JobId } from '@server/lib/settings';
 import axios from 'axios';
 import cronstrue from 'cronstrue/i18n';
 import humanizeDuration from 'humanize-duration';
-import { Fragment, useReducer, useState } from 'react';
+import {
+  Fragment,
+  useEffect,
+  useReducer,
+  useState,
+  type FormEvent,
+} from 'react';
 import type { MessageDescriptor } from 'react-intl';
 import { FormattedRelativeTime, useIntl } from 'react-intl';
 import useSWR from 'swr';
@@ -109,6 +115,13 @@ const messages: { [messageName: string]: MessageDescriptor } = defineMessages(
     imagecachecount: 'Images Cached',
     imagecachesize: 'Total Cache Size',
     usersavatars: "Users' Avatars",
+    calendar: 'Calendar',
+    calendarDescription:
+      'Configure the read-only upcoming releases calendar. Changing the cache lifetime clears its current data.',
+    calendarCacheTtl: 'Calendar cache lifetime (minutes)',
+    calendarRefreshInterval: 'Calendar auto-refresh (minutes, 0 to disable)',
+    calendarSaved: 'Calendar settings saved.',
+    calendarSaveError: 'Unable to save calendar settings.',
   }
 );
 
@@ -188,6 +201,11 @@ const SettingsJobs = () => {
     refreshInterval: 5000,
   });
   const { data: appData } = useSWR('/api/v1/status/appdata');
+  const { data: calendarSettings, mutate: revalidateCalendarSettings } =
+    useSWR<{
+      calendarCacheTtlMinutes?: number;
+      calendarRefreshIntervalMinutes?: number;
+    }>('/api/v1/settings/main');
   const { data: cacheData, mutate: cacheRevalidate } = useSWR<CacheResponse>(
     '/api/v1/settings/cache',
     {
@@ -203,7 +221,21 @@ const SettingsJobs = () => {
     scheduleSeconds: 30,
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [calendarCacheTtl, setCalendarCacheTtl] = useState('10');
+  const [calendarRefreshInterval, setCalendarRefreshInterval] = useState('15');
+  const [calendarSaveError, setCalendarSaveError] = useState<string>();
   const settings = useSettings();
+
+  useEffect(() => {
+    if (calendarSettings) {
+      setCalendarCacheTtl(
+        String(calendarSettings.calendarCacheTtlMinutes ?? 10)
+      );
+      setCalendarRefreshInterval(
+        String(calendarSettings.calendarRefreshIntervalMinutes ?? 15)
+      );
+    }
+  }, [calendarSettings]);
 
   if (settings.currentSettings.mediaServerType === MediaServerType.EMBY) {
     messages['jellyfin-recently-added-scan'] = {
@@ -326,6 +358,24 @@ const SettingsJobs = () => {
     });
   };
 
+  const saveCalendarSettings = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setCalendarSaveError(undefined);
+    try {
+      await axios.post('/api/v1/settings/main', {
+        calendarCacheTtlMinutes: Number(calendarCacheTtl),
+        calendarRefreshIntervalMinutes: Number(calendarRefreshInterval),
+      });
+      await revalidateCalendarSettings();
+      addToast(intl.formatMessage(messages.calendarSaved), {
+        appearance: 'success',
+        autoDismiss: true,
+      });
+    } catch {
+      setCalendarSaveError(intl.formatMessage(messages.calendarSaveError));
+    }
+  };
+
   return (
     <>
       <PageTitle
@@ -334,6 +384,51 @@ const SettingsJobs = () => {
           intl.formatMessage(globalMessages.settings),
         ]}
       />
+      <div className="section mb-6">
+        <h2 className="section-title">
+          {intl.formatMessage(messages.calendar)}
+        </h2>
+        <p className="mb-4 text-sm text-gray-400">
+          {intl.formatMessage(messages.calendarDescription)}
+        </p>
+        <form
+          className="flex flex-wrap items-end gap-4"
+          onSubmit={saveCalendarSettings}
+        >
+          <label className="text-label">
+            {intl.formatMessage(messages.calendarCacheTtl)}
+            <input
+              className="form-input mt-1"
+              type="number"
+              name="calendarCacheTtlMinutes"
+              min="1"
+              max="1440"
+              value={calendarCacheTtl}
+              onChange={(event) => setCalendarCacheTtl(event.target.value)}
+            />
+          </label>
+          <label className="text-label">
+            {intl.formatMessage(messages.calendarRefreshInterval)}
+            <input
+              className="form-input mt-1"
+              type="number"
+              name="calendarRefreshIntervalMinutes"
+              min="0"
+              max="1440"
+              value={calendarRefreshInterval}
+              onChange={(event) =>
+                setCalendarRefreshInterval(event.target.value)
+              }
+            />
+          </label>
+          <Button buttonType="primary" type="submit">
+            {intl.formatMessage(globalMessages.save)}
+          </Button>
+        </form>
+        {calendarSaveError && (
+          <p className="mt-2 text-sm text-red-400">{calendarSaveError}</p>
+        )}
+      </div>
       <Transition
         as={Fragment}
         enter="transition-opacity duration-300"

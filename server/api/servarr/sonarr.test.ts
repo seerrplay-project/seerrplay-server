@@ -117,3 +117,28 @@ describe('SonarrAPI getSeriesByTvdbId', () => {
     });
   });
 });
+
+describe('SonarrAPI getCalendar', () => {
+  afterEach(() => mock.restoreAll());
+
+  it('uses only Sonarr’s read-only calendar endpoint', async () => {
+    const sonarr = buildSonarr();
+    const get = mock.method(getAxios(sonarr), 'get', async () => ({
+      data: [],
+    }));
+
+    await sonarr.getCalendar({ start: '2026-09-14', end: '2026-09-22' });
+
+    assert.deepStrictEqual(get.mock.calls[0].arguments, [
+      '/calendar',
+      {
+        params: {
+          start: '2026-09-14',
+          end: '2026-09-22',
+          includeSeries: true,
+          unmonitored: false,
+        },
+      },
+    ]);
+  });
+});

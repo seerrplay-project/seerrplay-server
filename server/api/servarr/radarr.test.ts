@@ -117,3 +117,23 @@ describe('RadarrAPI getMovieByTmdbId', () => {
     });
   });
 });
+
+describe('RadarrAPI getCalendar', () => {
+  afterEach(() => mock.restoreAll());
+
+  it('uses the read-only calendar endpoint and its bounded query', async () => {
+    const radarr = buildRadarr();
+    const get = mock.method(getAxios(radarr), 'get', async () => ({
+      data: [],
+    }));
+
+    await radarr.getCalendar({ start: '2026-09-14', end: '2026-09-22' });
+
+    assert.deepStrictEqual(get.mock.calls[0].arguments, [
+      '/calendar',
+      {
+        params: { start: '2026-09-14', end: '2026-09-22', unmonitored: false },
+      },
+    ]);
+  });
+});

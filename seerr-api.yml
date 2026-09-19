@@ -220,6 +220,16 @@ components:
         apiKey:
           type: string
           readOnly: true
+        calendarCacheTtlMinutes:
+          type: integer
+          minimum: 1
+          maximum: 1440
+          example: 10
+        calendarRefreshIntervalMinutes:
+          type: integer
+          minimum: 0
+          maximum: 1440
+          example: 15
         appLanguage:
           type: string
           example: en
@@ -256,6 +266,47 @@ components:
         versionCheck:
           type: boolean
           example: false
+    CalendarItem:
+      type: object
+      required: [id, type, tmdbId, title, date, has4k]
+      properties:
+        id: { type: string }
+        type: { type: string, enum: [movie, tv, anime] }
+        tmdbId: { type: integer }
+        title: { type: string }
+        date: { type: string, format: date }
+        airDateUtc: { type: string, format: date-time }
+        seasonNumber: { type: integer }
+        episodeNumber: { type: integer }
+        episodeTitle: { type: string }
+        releaseTypes:
+          type: array
+          items: { type: string, enum: [cinema, digital, physical] }
+        has4k: { type: boolean }
+    CalendarResponse:
+      type: object
+      required:
+        [
+          week,
+          timezone,
+          items,
+          degraded,
+          sources,
+          warnings,
+          refreshIntervalMinutes,
+        ]
+      properties:
+        week: { type: string, format: date }
+        timezone: { type: string }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/CalendarItem' }
+        degraded: { type: boolean }
+        sources: { type: object }
+        warnings:
+          type: array
+          items: { type: string }
+        refreshIntervalMinutes: { type: integer }
     NetworkSettings:
       type: object
       properties:
@@ -3160,6 +3211,35 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Job'
+  /calendar:
+    get:
+      summary: Get upcoming releases for Seerr-managed media
+      description: Returns a Monday-to-Sunday calendar assembled from configured Radarr and Sonarr instances. This endpoint is read-only and never triggers searches.
+      tags:
+        - other
+      parameters:
+        - name: week
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Monday in YYYY-MM-DD format.
+        - name: timezone
+          in: query
+          required: true
+          schema:
+            type: string
+          description: IANA timezone, for example Europe/Paris.
+      responses:
+        '200':
+          description: Calendar events, source health and refresh interval.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalendarResponse'
+        '400':
+          description: Invalid week or timezone.
   /settings/cache:
     get:
       summary: Get a list of active caches
