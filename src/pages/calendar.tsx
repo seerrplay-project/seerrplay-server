@@ -24,6 +24,7 @@ const messages = defineMessages('components.Calendar', {
   yesterday: 'Yesterday',
   tomorrow: 'Tomorrow',
   nextWeekday: 'Next {weekday}',
+  lastWeekday: 'Last {weekday}',
   next: 'Next',
   all: 'All',
   movies: 'Movies',
@@ -142,6 +143,16 @@ const Calendar: NextPage = () => {
     if (offset === -1) {
       return {
         label: intl.formatMessage(messages.yesterday),
+        detail: exactDate,
+      };
+    }
+    if (offset >= -7 && offset <= -2) {
+      const weekday = new Intl.DateTimeFormat(undefined, {
+        weekday: 'long',
+      }).format(parseCalendarDate(day));
+
+      return {
+        label: intl.formatMessage(messages.lastWeekday, { weekday }),
         detail: exactDate,
       };
     }

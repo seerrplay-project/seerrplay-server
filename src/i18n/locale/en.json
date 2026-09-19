@@ -23,6 +23,7 @@
   "components.Calendar.digital": "Digital",
   "components.Calendar.empty": "No upcoming releases for this week.",
   "components.Calendar.error": "Unable to load the calendar.",
+  "components.Calendar.lastWeekday": "Last {weekday}",
   "components.Calendar.loading": "Loading calendar…",
   "components.Calendar.movies": "Movies",
   "components.Calendar.next": "Next",

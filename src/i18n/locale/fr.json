@@ -10,6 +10,7 @@
   "components.Calendar.empty": "Aucune sortie à venir cette semaine.",
   "components.Calendar.error": "Impossible de charger le calendrier.",
   "components.Calendar.loading": "Chargement du calendrier…",
+  "components.Calendar.lastWeekday": "{weekday} dernier",
   "components.Calendar.movies": "Films",
   "components.Calendar.next": "Suivante",
   "components.Calendar.nextWeekday": "{weekday} prochain",
