@@ -89,6 +89,11 @@ export interface SonarrSeries {
   };
 }
 
+/** A read-only item returned by Sonarr's v3 calendar endpoint. */
+export interface SonarrCalendarItem extends EpisodeResult {
+  series: SonarrSeries;
+}
+
 export interface AddSeriesOptions {
   tvdbid: number;
   title: string;
@@ -116,6 +121,25 @@ class SonarrAPI extends ServarrBase<{
 }> {
   constructor({ url, apiKey }: { url: string; apiKey: string }) {
     super({ url, apiKey, apiName: 'Sonarr', cacheName: 'sonarr' });
+  }
+
+  public async getCalendar({
+    start,
+    end,
+  }: {
+    start: string;
+    end: string;
+  }): Promise<SonarrCalendarItem[]> {
+    try {
+      const response = await this.axios.get<SonarrCalendarItem[]>('/calendar', {
+        params: { start, end, includeSeries: true, unmonitored: false },
+      });
+      return response.data;
+    } catch (e) {
+      throw new Error(`[Sonarr] Failed to retrieve calendar: ${e.message}`, {
+        cause: e,
+      });
+    }
   }
 
   public async getSeries(): Promise<SonarrSeries[]> {

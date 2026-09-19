@@ -64,9 +64,35 @@ export interface RadarrMovie {
   };
 }
 
+/** A read-only item returned by Radarr's v3 calendar endpoint. */
+export interface RadarrCalendarItem extends RadarrMovie {
+  digitalRelease?: string;
+  physicalRelease?: string;
+  inCinemas?: string;
+}
+
 class RadarrAPI extends ServarrBase<{ movieId: number }> {
   constructor({ url, apiKey }: { url: string; apiKey: string }) {
     super({ url, apiKey, cacheName: 'radarr', apiName: 'Radarr' });
+  }
+
+  public async getCalendar({
+    start,
+    end,
+  }: {
+    start: string;
+    end: string;
+  }): Promise<RadarrCalendarItem[]> {
+    try {
+      const response = await this.axios.get<RadarrCalendarItem[]>('/calendar', {
+        params: { start, end, unmonitored: false },
+      });
+      return response.data;
+    } catch (e) {
+      throw new Error(`[Radarr] Failed to retrieve calendar: ${e.message}`, {
+        cause: e,
+      });
+    }
   }
 
   public getMovies = async (): Promise<RadarrMovie[]> => {

@@ -11,7 +11,8 @@ export type AvailableCacheIds =
   | 'plextv'
   | 'plexwatchlist'
   | 'tvdb'
-  | 'anilist';
+  | 'anilist'
+  | 'calendar';
 
 const DEFAULT_TTL = 300;
 
@@ -52,6 +53,9 @@ const TVDB_MAX_KEYS = 500;
 // Seasonal pages and resolved results are cached per season, with a small
 // allowance for AniList API responses and stale fallbacks.
 const ANILIST_MAX_KEYS = 256;
+
+// One entry per requested calendar week and timezone combination.
+const CALENDAR_MAX_KEYS = 256;
 
 export interface CacheStats {
   hits: number;
@@ -258,6 +262,9 @@ class CacheManager {
     anilist: new Cache('anilist', 'AniList API', {
       stdTtl: 86400,
       max: ANILIST_MAX_KEYS,
+    }),
+    calendar: new Cache('calendar', 'Calendar API', {
+      max: CALENDAR_MAX_KEYS,
     }),
   };
 

@@ -17,6 +17,7 @@ import type {
 import { scheduledJobs } from '@server/job/schedule';
 import type { AvailableCacheIds } from '@server/lib/cache';
 import cacheManager from '@server/lib/cache';
+import { flushCalendarCache } from '@server/lib/calendar';
 import ImageProxy from '@server/lib/imageproxy';
 import { Permission } from '@server/lib/permissions';
 import { jellyfinFullScanner } from '@server/lib/scanners/jellyfin';
@@ -81,6 +82,28 @@ settingsRoutes.get('/main', (req, res, next) => {
 
 settingsRoutes.post('/main', async (req, res) => {
   const settings = getSettings();
+
+  if (req.body.calendarCacheTtlMinutes !== undefined) {
+    const ttl = Number(req.body.calendarCacheTtlMinutes);
+    if (!Number.isInteger(ttl) || ttl < 1 || ttl > 1440) {
+      return res.status(400).json({
+        message: 'calendarCacheTtlMinutes must be between 1 and 1440.',
+      });
+    }
+  }
+  if (req.body.calendarRefreshIntervalMinutes !== undefined) {
+    const interval = Number(req.body.calendarRefreshIntervalMinutes);
+    if (!Number.isInteger(interval) || interval < 0 || interval > 1440) {
+      return res.status(400).json({
+        message: 'calendarRefreshIntervalMinutes must be between 0 and 1440.',
+      });
+    }
+  }
+  if (
+    req.body.calendarCacheTtlMinutes !== undefined ||
+    req.body.calendarRefreshIntervalMinutes !== undefined
+  )
+    flushCalendarCache();
 
   settings.main = merge(settings.main, req.body);
   await settings.save();

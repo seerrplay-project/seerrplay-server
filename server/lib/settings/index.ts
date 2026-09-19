@@ -131,6 +131,8 @@ export interface ProxySettings {
 
 export interface MainSettings {
   apiKey: string;
+  calendarCacheTtlMinutes?: number;
+  calendarRefreshIntervalMinutes?: number;
   applicationTitle: string;
   applicationUrl: string;
   cacheImages: boolean;
@@ -409,6 +411,8 @@ class Settings {
       vapidPublic: '',
       main: {
         apiKey: '',
+        calendarCacheTtlMinutes: 10,
+        calendarRefreshIntervalMinutes: 15,
         applicationTitle: 'Seerr',
         applicationUrl: '',
         cacheImages: false,
