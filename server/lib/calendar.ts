@@ -35,7 +35,8 @@ const getPosterUrl = (
 
   try {
     const url = new URL(imageUrl);
-    return ['http:', 'https:'].includes(url.protocol)
+    const allowedHosts = new Set(['artworks.thetvdb.com', 'image.tmdb.org']);
+    return url.protocol === 'https:' && allowedHosts.has(url.hostname)
       ? url.toString()
       : undefined;
   } catch {

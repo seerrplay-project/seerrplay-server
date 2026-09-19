@@ -156,6 +156,40 @@ describe('calendar aggregation', () => {
     assert.equal(result.warnings.length, 1);
   });
 
+  it('rejects calendar poster URLs outside the supported image hosts', async () => {
+    configure();
+    await getRepository(Media).save({
+      mediaType: MediaType.TV,
+      tmdbId: 10,
+      tvdbId: 20,
+    });
+    mock.method(
+      SonarrAPI.prototype,
+      'getCalendar',
+      async () =>
+        [
+          {
+            series: {
+              title: 'Series',
+              tvdbId: 20,
+              seriesType: 'standard',
+              remotePoster:
+                'https://artworks.thetvdb.com.attacker.example/poster.jpg',
+            },
+            seasonNumber: 1,
+            episodeNumber: 1,
+            title: 'Pilot',
+            airDateUtc: '2026-09-14T12:00:00Z',
+          },
+        ] as never
+    );
+    mock.method(RadarrAPI.prototype, 'getCalendar', async () => []);
+
+    const result = await getCalendar({ week: '2026-09-14', timezone: 'UTC' });
+
+    assert.equal(result.items[0].posterUrl, undefined);
+  });
+
   it('deduplicates standard and 4K instances while retaining 4K availability', async () => {
     configure();
     const settings = getSettings();

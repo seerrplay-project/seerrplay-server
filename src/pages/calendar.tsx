@@ -53,6 +53,18 @@ const shiftWeek = (week: string, offset: number) => {
   return localDate(date);
 };
 
+const getPosterType = (posterUrl?: string) => {
+  if (!posterUrl) return 'tmdb';
+
+  try {
+    return new URL(posterUrl).hostname === 'artworks.thetvdb.com'
+      ? 'tvdb'
+      : 'tmdb';
+  } catch {
+    return 'tmdb';
+  }
+};
+
 const Calendar: NextPage = () => {
   const router = useRouter();
   const intl = useIntl();
@@ -212,11 +224,6 @@ const Calendar: NextPage = () => {
                   <div className="flex snap-x gap-3 overflow-x-auto px-4 py-4 sm:gap-4 sm:px-5">
                     {dayItems.map((item) => {
                       const isMovie = item.type === 'movie';
-                      const posterType = item.posterUrl?.includes(
-                        'artworks.thetvdb.com'
-                      )
-                        ? 'tvdb'
-                        : 'tmdb';
                       const TypeIcon = isMovie
                         ? FilmIcon
                         : item.type === 'anime'
@@ -235,7 +242,7 @@ const Calendar: NextPage = () => {
                                 item.posterUrl ||
                                 '/images/seerr_poster_not_found.png'
                               }
-                              type={posterType}
+                              type={getPosterType(item.posterUrl)}
                               alt=""
                               fill
                               sizes="112px"
