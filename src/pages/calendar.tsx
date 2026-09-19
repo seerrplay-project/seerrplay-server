@@ -33,7 +33,7 @@ const messages = defineMessages('components.Calendar', {
   error: 'Unable to load the calendar.',
   degraded: 'Some calendar sources are temporarily unavailable.',
   loading: 'Loading calendar…',
-  empty: 'No upcoming releases for this week.',
+  empty: 'No releases for this period.',
   noReleases: 'No releases',
   cinema: 'Cinema',
   digital: 'Digital',
@@ -96,18 +96,19 @@ const Calendar: NextPage = () => {
       ? router.query.week
       : monday();
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  const startWeek = shiftWeek(week, -1);
   const [filter, setFilter] = useState<'all' | 'movie' | 'tv' | 'anime'>('all');
   const { data, error } = useSWR<CalendarResponse>(
-    `/api/v1/calendar?week=${week}&timezone=${encodeURIComponent(timezone)}`,
+    `/api/v1/calendar?week=${startWeek}&weeks=3&timezone=${encodeURIComponent(timezone)}`,
     { refreshInterval: (data) => (data?.refreshIntervalMinutes ?? 15) * 60000 }
   );
   const days = useMemo(() => {
-    return Array.from({ length: 7 }, (_, index) => {
-      const [year, month, day] = week.split('-').map(Number);
+    return Array.from({ length: 21 }, (_, index) => {
+      const [year, month, day] = startWeek.split('-').map(Number);
       const date = new Date(year, month - 1, day + index);
       return localDate(date);
     });
-  }, [week]);
+  }, [startWeek]);
   const move = (target: string) =>
     router.push({ pathname: '/calendar', query: { week: target } });
   const today = localDate(new Date());
@@ -194,7 +195,7 @@ const Calendar: NextPage = () => {
             {intl.formatMessage(messages.title)}
           </h1>
           <p className="mt-1 text-sm text-gray-400 first-letter:uppercase">
-            {formatDay(days[0])} — {formatDay(days[6])}
+            {formatDay(days[0])} — {formatDay(days[20])}
           </p>
         </div>
         <div className="flex items-center gap-2" role="group">

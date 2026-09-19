@@ -269,7 +269,41 @@ describe('calendar aggregation', () => {
     await getCalendar({ week: '2026-09-14', timezone: 'UTC' });
     const expiresAt = cacheManager
       .getCache('calendar')
-      .data.getTtl('2026-09-14:UTC');
+      .data.getTtl('2026-09-14:1:UTC');
     assert.ok(expiresAt && expiresAt > Date.now() + 50000);
+  });
+
+  it('loads three weeks with one bounded request per service', async () => {
+    configure();
+    const sonarrCalls: { start: string; end: string }[] = [];
+    const radarrCalls: { start: string; end: string }[] = [];
+    mock.method(
+      SonarrAPI.prototype,
+      'getCalendar',
+      async (range: { start: string; end: string }) => {
+        sonarrCalls.push(range);
+        return [];
+      }
+    );
+    mock.method(
+      RadarrAPI.prototype,
+      'getCalendar',
+      async (range: { start: string; end: string }) => {
+        radarrCalls.push(range);
+        return [];
+      }
+    );
+
+    const result = await getCalendar({
+      week: '2026-09-07',
+      weeks: 3,
+      timezone: 'Europe/Paris',
+    });
+
+    assert.equal(result.weeks, 3);
+    assert.deepStrictEqual(sonarrCalls, [
+      { start: '2026-09-06', end: '2026-09-29' },
+    ]);
+    assert.deepStrictEqual(radarrCalls, sonarrCalls);
   });
 });

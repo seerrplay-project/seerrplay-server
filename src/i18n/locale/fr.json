@@ -7,7 +7,7 @@
   "components.Calendar.cinema": "Cinéma",
   "components.Calendar.degraded": "Certaines sources du calendrier sont temporairement indisponibles.",
   "components.Calendar.digital": "Numérique",
-  "components.Calendar.empty": "Aucune sortie à venir cette semaine.",
+  "components.Calendar.empty": "Aucune sortie pour cette période.",
   "components.Calendar.error": "Impossible de charger le calendrier.",
   "components.Calendar.loading": "Chargement du calendrier…",
   "components.Calendar.lastWeekday": "{weekday} dernier",
