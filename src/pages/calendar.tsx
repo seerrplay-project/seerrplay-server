@@ -1,10 +1,12 @@
 import Button from '@app/components/Common/Button';
 import CachedImage from '@app/components/Common/CachedImage';
+import {
+  getCalendarDateRange,
+  getCalendarQueryStart,
+} from '@app/utils/calendarDateRange';
 import defineMessages from '@app/utils/defineMessages';
 import {
   CalendarDaysIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
   FilmIcon,
   SparklesIcon,
   TvIcon,
@@ -12,20 +14,17 @@ import {
 import type { CalendarResponse } from '@server/interfaces/api/calendarInterfaces';
 import type { NextPage } from 'next';
 import Link from 'next/link';
-import { useRouter } from 'next/router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
 import useSWR from 'swr';
 
 const messages = defineMessages('components.Calendar', {
   title: 'My releases',
-  previous: 'Previous',
   today: 'Today',
   yesterday: 'Yesterday',
   tomorrow: 'Tomorrow',
   nextWeekday: 'Next {weekday}',
   lastWeekday: 'Last {weekday}',
-  next: 'Next',
   all: 'All',
   movies: 'Movies',
   series: 'Series',
@@ -42,20 +41,6 @@ const messages = defineMessages('components.Calendar', {
 
 const localDate = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-
-const monday = (date = new Date()) => {
-  const result = new Date(date);
-  const day = result.getDay() || 7;
-  result.setDate(result.getDate() - day + 1);
-  return localDate(result);
-};
-
-const shiftWeek = (week: string, offset: number) => {
-  const [year, month, day] = week.split('-').map(Number);
-  const date = new Date(year, month - 1, day);
-  date.setDate(date.getDate() + offset * 7);
-  return localDate(date);
-};
 
 const parseCalendarDate = (day: string) => {
   const [year, month, date] = day.split('-').map(Number);
@@ -88,30 +73,43 @@ const getPosterType = (posterUrl?: string) => {
 };
 
 const Calendar: NextPage = () => {
-  const router = useRouter();
   const intl = useIntl();
-  const week =
-    typeof router.query.week === 'string' &&
-    /^\d{4}-\d{2}-\d{2}$/.test(router.query.week)
-      ? router.query.week
-      : monday();
+  const today = localDate(new Date());
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-  const startWeek = shiftWeek(week, -1);
+  const startWeek = getCalendarQueryStart(parseCalendarDate(today));
   const [filter, setFilter] = useState<'all' | 'movie' | 'tv' | 'anime'>('all');
+  const todaySectionRef = useRef<HTMLElement>(null);
+  const didInitialScroll = useRef(false);
   const { data, error } = useSWR<CalendarResponse>(
     `/api/v1/calendar?week=${startWeek}&weeks=3&timezone=${encodeURIComponent(timezone)}`,
     { refreshInterval: (data) => (data?.refreshIntervalMinutes ?? 15) * 60000 }
   );
-  const days = useMemo(() => {
-    return Array.from({ length: 21 }, (_, index) => {
-      const [year, month, day] = startWeek.split('-').map(Number);
-      const date = new Date(year, month - 1, day + index);
-      return localDate(date);
+  const days = useMemo(
+    () => getCalendarDateRange(parseCalendarDate(today)),
+    [today]
+  );
+
+  useEffect(() => {
+    if (!data || didInitialScroll.current) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      if (todaySectionRef.current) {
+        todaySectionRef.current.scrollIntoView({
+          behavior: 'auto',
+          block: 'start',
+        });
+        didInitialScroll.current = true;
+      }
     });
-  }, [startWeek]);
-  const move = (target: string) =>
-    router.push({ pathname: '/calendar', query: { week: target } });
-  const today = localDate(new Date());
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [data]);
+
+  const scrollToToday = () =>
+    todaySectionRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
   const filteredItems = useMemo(
     () =>
       data?.items.filter((item) => filter === 'all' || item.type === filter) ??
@@ -195,39 +193,13 @@ const Calendar: NextPage = () => {
             {intl.formatMessage(messages.title)}
           </h1>
           <p className="mt-1 text-sm text-gray-400 first-letter:uppercase">
-            {formatDay(days[0])} — {formatDay(days[20])}
+            {formatDay(days[0])} — {formatDay(days[14])}
           </p>
         </div>
         <div className="flex items-center gap-2" role="group">
-          <Button
-            buttonSize="sm"
-            className="h-10 px-3"
-            aria-label={intl.formatMessage(messages.previous)}
-            onClick={() => move(shiftWeek(week, -1))}
-          >
-            <ChevronLeftIcon className="mr-1 h-4 w-4" />
-            <span className="hidden sm:inline">
-              {intl.formatMessage(messages.previous)}
-            </span>
-          </Button>
-          <Button
-            buttonSize="sm"
-            className="h-10 px-3"
-            onClick={() => move(monday())}
-          >
+          <Button buttonSize="sm" className="h-10 px-3" onClick={scrollToToday}>
             <CalendarDaysIcon className="mr-1.5 h-4 w-4" />
             {intl.formatMessage(messages.today)}
-          </Button>
-          <Button
-            buttonSize="sm"
-            className="h-10 px-3"
-            aria-label={intl.formatMessage(messages.next)}
-            onClick={() => move(shiftWeek(week, 1))}
-          >
-            <span className="hidden sm:inline">
-              {intl.formatMessage(messages.next)}
-            </span>
-            <ChevronRightIcon className="ml-1 h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -272,7 +244,18 @@ const Calendar: NextPage = () => {
             const dayHeading = formatDayHeading(day);
 
             return (
-              <section key={day}>
+              <section
+                key={day}
+                ref={isToday ? todaySectionRef : undefined}
+                style={
+                  isToday
+                    ? {
+                        scrollMarginTop:
+                          'calc(5rem + env(safe-area-inset-top))',
+                      }
+                    : undefined
+                }
+              >
                 <div className="mb-3 flex items-center gap-3">
                   <div className="min-w-0">
                     <time
