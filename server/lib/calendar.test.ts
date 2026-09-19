@@ -78,7 +78,17 @@ describe('calendar aggregation', () => {
       'getCalendar',
       async () =>
         [
-          { tmdbId: 1, title: 'Known', inCinemas: '2026-09-14T00:00:00Z' },
+          {
+            tmdbId: 1,
+            title: 'Known',
+            inCinemas: '2026-09-14T00:00:00Z',
+            images: [
+              {
+                coverType: 'poster',
+                remoteUrl: 'https://image.tmdb.org/t/p/original/poster.jpg',
+              },
+            ],
+          },
           {
             tmdbId: 2,
             title: 'Unknown',
@@ -96,6 +106,10 @@ describe('calendar aggregation', () => {
       result.items.map((item) => [item.tmdbId, item.date, item.releaseTypes]),
       [[1, '2026-09-14', ['cinema']]]
     );
+    assert.equal(
+      result.items[0].posterUrl,
+      'https://image.tmdb.org/t/p/original/poster.jpg'
+    );
   });
 
   it('classifies anime and tolerates a failed source', async () => {
@@ -111,7 +125,12 @@ describe('calendar aggregation', () => {
       async () =>
         [
           {
-            series: { title: 'Anime', tvdbId: 20, seriesType: 'anime' },
+            series: {
+              title: 'Anime',
+              tvdbId: 20,
+              seriesType: 'anime',
+              remotePoster: 'https://artworks.thetvdb.com/banners/poster.jpg',
+            },
             seasonNumber: 1,
             episodeNumber: 1,
             title: 'Pilot',
@@ -129,8 +148,46 @@ describe('calendar aggregation', () => {
     });
 
     assert.equal(result.items[0].type, 'anime');
+    assert.equal(
+      result.items[0].posterUrl,
+      'https://artworks.thetvdb.com/banners/poster.jpg'
+    );
     assert.equal(result.degraded, true);
     assert.equal(result.warnings.length, 1);
+  });
+
+  it('rejects calendar poster URLs outside the supported image hosts', async () => {
+    configure();
+    await getRepository(Media).save({
+      mediaType: MediaType.TV,
+      tmdbId: 10,
+      tvdbId: 20,
+    });
+    mock.method(
+      SonarrAPI.prototype,
+      'getCalendar',
+      async () =>
+        [
+          {
+            series: {
+              title: 'Series',
+              tvdbId: 20,
+              seriesType: 'standard',
+              remotePoster:
+                'https://artworks.thetvdb.com.attacker.example/poster.jpg',
+            },
+            seasonNumber: 1,
+            episodeNumber: 1,
+            title: 'Pilot',
+            airDateUtc: '2026-09-14T12:00:00Z',
+          },
+        ] as never
+    );
+    mock.method(RadarrAPI.prototype, 'getCalendar', async () => []);
+
+    const result = await getCalendar({ week: '2026-09-14', timezone: 'UTC' });
+
+    assert.equal(result.items[0].posterUrl, undefined);
   });
 
   it('deduplicates standard and 4K instances while retaining 4K availability', async () => {

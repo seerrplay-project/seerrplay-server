@@ -41,6 +41,7 @@ export interface SonarrSeries {
   images: {
     coverType: string;
     url: string;
+    remoteUrl?: string;
   }[];
   remotePoster: string;
   seasons: SonarrSeason[];

@@ -30,6 +30,12 @@ export interface RadarrMovie {
   added: string;
   hasFile: boolean;
   tags: number[];
+  images?: {
+    coverType: string;
+    url: string;
+    remoteUrl?: string;
+  }[];
+  remotePoster?: string;
   movieFile?: {
     id: number;
     movieId: number;
