@@ -12,6 +12,11 @@ import ImageProxy from '@server/lib/imageproxy';
 import { getSettings } from '@server/lib/settings';
 import { checkUser } from '@server/middleware/auth';
 import { setupTestDb } from '@server/test/db';
+import {
+  allowlistedSettings,
+  assertNoCredentials,
+  seedUserSettings,
+} from '@server/test/userSettings';
 import { ApiError } from '@server/types/error';
 import axios from 'axios';
 import type { Express } from 'express';
@@ -613,6 +618,30 @@ describe('GET /auth/me', () => {
 
     settings.notifications.agents.email.options.userEmailRequired = false;
   });
+
+  it('returns only the allowlisted settings fields', async () => {
+    await seedUserSettings('admin@seerr.dev');
+    const agent = await authenticatedAgent('admin@seerr.dev', 'test1234');
+
+    const res = await agent.get('/auth/me');
+
+    assert.strictEqual(res.status, 200);
+    assert.deepStrictEqual(Object.keys(res.body.settings).sort(), [
+      'discoverRegion',
+      'locale',
+      'notificationTypes',
+      'originalLanguage',
+      'streamingRegion',
+      'watchlistSyncMovies',
+      'watchlistSyncTv',
+    ]);
+    assert.strictEqual(res.body.settings.locale, allowlistedSettings.locale);
+    assert.strictEqual(
+      res.body.settings.discoverRegion,
+      allowlistedSettings.discoverRegion
+    );
+    assertNoCredentials(res.body);
+  });
 });
 
 describe('POST /auth/local', () => {
@@ -692,7 +721,7 @@ describe('POST /auth/local', () => {
   it('allows the non-admin user to log in', async () => {
     const res = await request(app)
       .post('/auth/local')
-      .send({ email: 'friend@seerr.dev', password: 'test1234' });
+      .send({ email: 'demo@seerr.dev', password: 'test1234' });
 
     assert.strictEqual(res.status, 200);
     assert.ok('id' in res.body);
