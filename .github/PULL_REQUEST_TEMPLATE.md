@@ -11,6 +11,11 @@
 
 - Fixes #XXXX
 
+## AI Disclosure
+
+<!--- How did you use AI for this PR, if at all? Write "None" if you didn't. -->
+<!--- See our policy: https://github.com/seerr-team/seerr/blob/develop/CONTRIBUTING.md#disclosure-requirements -->
+
 ## How Has This Been Tested?
 
 <!--- Please describe in detail how you tested your changes. -->
