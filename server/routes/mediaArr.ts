@@ -50,6 +50,17 @@ class HttpError extends Error {
 
 const QBIT_ACTIONS: ArrAction[] = ['forceStart', 'reannounce'];
 
+// ids end up in *arr URL paths: accept plain integers only
+const toId = (value: unknown, name: string): number => {
+  const id = Number(value);
+  if (!Number.isSafeInteger(id)) {
+    throw new HttpError(400, `${name} must be an integer.`);
+  }
+  return id;
+};
+
+const TORRENT_HASH = /^[a-fA-F0-9]{40}$|^[a-fA-F0-9]{64}$/;
+
 const getQbittorrent = (): QbittorrentAPI | undefined => {
   const settings = getSettings().qbittorrent;
   return settings.url ? new QbittorrentAPI(settings) : undefined;
@@ -314,15 +325,15 @@ mediaArrRoutes.post<
   try {
     const ctx = await getContext(Number(req.params.id), !!req.body.is4k);
     const needQueue = () => {
-      if (queueId === undefined) {
-        throw new HttpError(400, 'queueId is required.');
-      }
-      return queueId;
+      return toId(queueId, 'queueId');
     };
     const needTorrent = () => {
       const qbittorrent = getQbittorrent();
-      if (!qbittorrent || !downloadId) {
+      if (!qbittorrent) {
         throw new HttpError(400, 'qBittorrent is not configured.');
+      }
+      if (!downloadId || !TORRENT_HASH.test(downloadId)) {
+        throw new HttpError(400, 'downloadId must be a torrent hash.');
       }
       return qbittorrent;
     };
@@ -382,7 +393,7 @@ mediaArrRoutes.post<
         } else if (seasonNumber !== undefined) {
           await (ctx.api as SonarrAPI).searchSeason(
             ctx.externalId,
-            seasonNumber
+            toId(seasonNumber, 'seasonNumber')
           );
         } else {
           await (ctx.api as SonarrAPI).searchSeries(ctx.externalId);
@@ -392,7 +403,8 @@ mediaArrRoutes.post<
         throw new HttpError(400, 'Unknown action.');
     }
 
-    logger.info(`Ran ${action} from Seerr`, {
+    logger.info('Ran an *arr action from Seerr', {
+      action: String(action).replace(/\W/g, ''),
       label: 'Arr Insights',
       mediaId: ctx.media.id,
       queueId,
@@ -420,12 +432,12 @@ mediaArrRoutes.get<{ id: string }>('/releases', async (req, res, next) => {
     }
     const seasonNumber =
       req.query.seasonNumber !== undefined
-        ? Number(req.query.seasonNumber)
+        ? toId(req.query.seasonNumber, 'seasonNumber')
         : undefined;
     const params: Record<string, number> = ctx.isMovie
       ? { movieId: ctx.externalId }
       : req.query.episodeId
-        ? { episodeId: Number(req.query.episodeId) }
+        ? { episodeId: toId(req.query.episodeId, 'episodeId') }
         : { seriesId: ctx.externalId, seasonNumber: seasonNumber ?? 1 };
 
     const releases: ArrRelease[] = (await ctx.api.getReleases(params))
@@ -477,7 +489,7 @@ mediaArrRoutes.post<
     // the id maps releases the *arr could not parse (e.g. French titles)
     await ctx.api.grabRelease({
       guid: req.body.guid,
-      indexerId: Number(req.body.indexerId),
+      indexerId: toId(req.body.indexerId, 'indexerId'),
       [ctx.isMovie ? 'movieId' : 'seriesId']: ctx.externalId,
     });
     logger.info('Grabbed release manually from Seerr', {

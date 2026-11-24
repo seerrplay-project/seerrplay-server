@@ -34,7 +34,7 @@ class QbittorrentAPI {
 
   constructor(private settings: QbittorrentSettings) {
     this.axios = axios.create({
-      baseURL: `${settings.url?.replace(/\/+$/, '')}/api/v2`,
+      baseURL: `${(settings.url ?? '').replace(/\/$/, '')}/api/v2`,
       timeout: 15000,
     });
     this.axios.interceptors.request.use(proxyRequestInterceptor);

@@ -7670,7 +7670,16 @@ paths:
               properties:
                 action:
                   type: string
-                  enum: [grabNow, forceStart, reannounce, import, remove, blocklistAndSearch, search]
+                  enum:
+                    [
+                      grabNow,
+                      forceStart,
+                      reannounce,
+                      import,
+                      remove,
+                      blocklistAndSearch,
+                      search,
+                    ]
                 is4k:
                   type: boolean
                 queueId:
