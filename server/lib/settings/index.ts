@@ -65,6 +65,12 @@ export interface TautulliSettings {
   externalUrl?: string;
 }
 
+export interface QbittorrentSettings {
+  url?: string;
+  username?: string;
+  password?: string;
+}
+
 export interface DVRSettings {
   id: number;
   name: string;
@@ -385,6 +391,7 @@ export interface AllSettings {
   plex: PlexSettings;
   jellyfin: JellyfinSettings;
   tautulli: TautulliSettings;
+  qbittorrent: QbittorrentSettings;
   radarr: RadarrSettings[];
   sonarr: SonarrSettings[];
   public: PublicSettings;
@@ -461,6 +468,7 @@ class Settings {
         apiKey: '',
       },
       tautulli: {},
+      qbittorrent: {},
       metadataSettings: {
         tv: MetadataProviderType.TMDB,
         anime: MetadataProviderType.TMDB,
@@ -669,6 +677,14 @@ class Settings {
 
   set jellyfin(data: JellyfinSettings) {
     this.data.jellyfin = mergeSettings(this.data.jellyfin, data);
+  }
+
+  get qbittorrent(): QbittorrentSettings {
+    return this.data.qbittorrent ?? {};
+  }
+
+  set qbittorrent(data: QbittorrentSettings) {
+    this.data.qbittorrent = data;
   }
 
   get tautulli(): TautulliSettings {

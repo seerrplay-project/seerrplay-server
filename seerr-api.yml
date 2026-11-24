@@ -2857,6 +2857,46 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TautulliSettings'
+  /settings/qbittorrent:
+    get:
+      summary: Get qBittorrent settings
+      description: The password is never returned, only whether one is saved.
+      tags:
+        - settings
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      summary: Update qBittorrent settings
+      description: Tests the connection before saving. An empty URL disables qBittorrent, an empty password keeps the saved one.
+      tags:
+        - settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Values were successfully updated
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
   /settings/radarr:
     get:
       summary: Get Radarr settings
@@ -7580,6 +7620,147 @@ paths:
       responses:
         '204':
           description: Successfully removed media item
+  /media/{mediaId}/arr:
+    get:
+      summary: Get Sonarr/Radarr download details
+      description: Queue records of the title with a diagnosis of stuck downloads, qBittorrent torrent state and library statistics. The `ADMIN` permission is required.
+      tags:
+        - media
+      parameters:
+        - in: path
+          name: mediaId
+          description: Media ID
+          required: true
+          example: '1'
+          schema:
+            type: string
+        - in: query
+          name: is4k
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Download details
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /media/{mediaId}/arr/action:
+    post:
+      summary: Run an action on a download
+      description: grabNow, forceStart, reannounce, import, remove, blocklistAndSearch or search. The `ADMIN` permission is required.
+      tags:
+        - media
+      parameters:
+        - in: path
+          name: mediaId
+          description: Media ID
+          required: true
+          example: '1'
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+                  enum: [grabNow, forceStart, reannounce, import, remove, blocklistAndSearch, search]
+                is4k:
+                  type: boolean
+                queueId:
+                  type: number
+                downloadId:
+                  type: string
+                seasonNumber:
+                  type: number
+                force:
+                  type: boolean
+              required:
+                - action
+      responses:
+        '200':
+          description: Action done
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '409':
+          description: Nothing could be imported
+  /media/{mediaId}/arr/releases:
+    get:
+      summary: Interactive release search
+      description: Searches every indexer through Sonarr/Radarr. The `ADMIN` permission is required.
+      tags:
+        - media
+      parameters:
+        - in: path
+          name: mediaId
+          description: Media ID
+          required: true
+          example: '1'
+          schema:
+            type: string
+        - in: query
+          name: is4k
+          required: false
+          schema:
+            type: boolean
+        - in: query
+          name: seasonNumber
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: episodeId
+          required: false
+          schema:
+            type: number
+      responses:
+        '200':
+          description: Releases
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      summary: Download a release from the last interactive search
+      tags:
+        - media
+      parameters:
+        - in: path
+          name: mediaId
+          description: Media ID
+          required: true
+          example: '1'
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                is4k:
+                  type: boolean
+                guid:
+                  type: string
+                indexerId:
+                  type: number
+              required:
+                - guid
+                - indexerId
+      responses:
+        '200':
+          description: Release sent to the download client
   /media/{mediaId}/{status}:
     post:
       summary: Update media status

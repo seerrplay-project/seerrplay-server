@@ -18,6 +18,7 @@ import { isAuthenticated } from '@server/middleware/auth';
 import { Router } from 'express';
 import type { FindOneOptions } from 'typeorm';
 import { EntityNotFoundError, In, IsNull, Not } from 'typeorm';
+import mediaArrRoutes from './mediaArr';
 
 const mediaRoutes = Router();
 
@@ -304,6 +305,8 @@ mediaRoutes.delete(
     }
   }
 );
+
+mediaRoutes.use('/:id/arr', isAuthenticated(Permission.ADMIN), mediaArrRoutes);
 
 mediaRoutes.get<{ id: string }, MediaWatchDataResponse>(
   '/:id/watch_data',

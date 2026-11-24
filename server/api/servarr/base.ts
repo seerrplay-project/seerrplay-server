@@ -48,7 +48,12 @@ export interface QualityProfile {
   name: string;
 }
 
-interface QueueItem {
+export interface QueueStatusMessage {
+  title: string;
+  messages: string[];
+}
+
+export interface QueueItem {
   size: number;
   title: string;
   sizeleft: number;
@@ -62,6 +67,55 @@ interface QueueItem {
   downloadClient: string;
   indexer: string;
   id: number;
+  added?: string;
+  errorMessage?: string;
+  statusMessages?: QueueStatusMessage[];
+  quality?: { quality: { name: string } };
+  languages?: { id: number; name: string }[];
+  customFormatScore?: number;
+}
+
+export interface ServarrRelease {
+  guid: string;
+  indexerId: number;
+  indexer: string;
+  title: string;
+  size: number;
+  age: number;
+  ageHours?: number;
+  protocol: string;
+  seeders?: number;
+  leechers?: number;
+  approved: boolean;
+  rejected: boolean;
+  rejections: string[];
+  temporarilyRejected?: boolean;
+  downloadAllowed: boolean;
+  quality: { quality: { name: string } };
+  languages?: { id: number; name: string }[];
+  customFormatScore?: number;
+  infoUrl?: string;
+  fullSeason?: boolean;
+  seasonNumber?: number;
+  episodeNumbers?: number[];
+}
+
+export interface ManualImportCandidate {
+  path: string;
+  relativePath?: string;
+  folderName?: string;
+  name?: string;
+  size?: number;
+  series?: { id: number; title: string };
+  movie?: { id: number; title: string };
+  seasonNumber?: number;
+  episodes?: { id: number; seasonNumber: number; episodeNumber: number }[];
+  quality: unknown;
+  languages?: unknown[];
+  releaseGroup?: string;
+  releaseType?: string;
+  indexerFlags?: number;
+  rejections?: { reason: string; type?: string }[];
 }
 
 export interface Tag {
@@ -168,6 +222,8 @@ class ServarrBase<QueueItemAppendT> extends ExternalAPI {
         {
           params: {
             includeEpisode: true,
+            // The default page holds 10 records, which hid busy queues
+            pageSize: 1000,
           },
         }
       );
@@ -228,6 +284,100 @@ class ServarrBase<QueueItemAppendT> extends ExternalAPI {
       });
     }
   };
+
+  /**
+   * Removes a queue record. With blocklist, the *arr also searches for
+   * another release unless skipRedownload is set.
+   */
+  public async removeQueueItem(
+    queueId: number,
+    {
+      blocklist,
+      removeFromClient,
+      skipRedownload = false,
+    }: {
+      blocklist: boolean;
+      removeFromClient: boolean;
+      skipRedownload?: boolean;
+    }
+  ): Promise<void> {
+    try {
+      await this.axios.delete(`/queue/${queueId}`, {
+        params: { blocklist, removeFromClient, skipRedownload },
+      });
+    } catch (e) {
+      throw new Error(
+        `[${this.apiName}] Failed to remove queue item: ${e.message}`,
+        { cause: e }
+      );
+    }
+  }
+
+  /** Grabs a release held back by a delay profile right away. */
+  public async grabQueueItem(queueId: number): Promise<void> {
+    try {
+      await this.axios.post(`/queue/grab/${queueId}`);
+    } catch (e) {
+      throw new Error(
+        `[${this.apiName}] Failed to grab queue item: ${e.message}`,
+        { cause: e }
+      );
+    }
+  }
+
+  /** Interactive search: every release the indexers return, with rejections. */
+  public async getReleases(
+    params: Record<string, number>
+  ): Promise<ServarrRelease[]> {
+    try {
+      const response = await this.axios.get<ServarrRelease[]>('/release', {
+        params,
+        // indexers can take a while to answer an interactive search
+        timeout: 120000,
+      });
+      return response.data;
+    } catch (e) {
+      throw new Error(
+        `[${this.apiName}] Failed to search releases: ${e.message}`,
+        { cause: e }
+      );
+    }
+  }
+
+  /** Sends a release from the last interactive search to the download client. */
+  public async grabRelease(
+    release: { guid: string; indexerId: number } & Record<string, unknown>
+  ): Promise<void> {
+    try {
+      await this.axios.post('/release', release);
+    } catch (e) {
+      throw new Error(
+        `[${this.apiName}] Failed to grab release: ${e.message}`,
+        { cause: e }
+      );
+    }
+  }
+
+  public async getManualImport(
+    params: Record<string, string | number | boolean>
+  ): Promise<ManualImportCandidate[]> {
+    try {
+      const response = await this.axios.get<ManualImportCandidate[]>(
+        '/manualimport',
+        { params }
+      );
+      return response.data;
+    } catch (e) {
+      throw new Error(
+        `[${this.apiName}] Failed to list manual import files: ${e.message}`,
+        { cause: e }
+      );
+    }
+  }
+
+  public async manualImport(files: Record<string, unknown>[]): Promise<void> {
+    await this.runCommand('ManualImport', { importMode: 'auto', files });
+  }
 
   async refreshMonitoredDownloads(): Promise<void> {
     await this.runCommand('RefreshMonitoredDownloads', {});
