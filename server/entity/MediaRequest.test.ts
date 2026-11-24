@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { beforeEach, describe, it, mock } from 'node:test';
 
 import ExternalAPI from '@server/api/externalapi';
+import { ANIME_KEYWORD_ID } from '@server/api/themoviedb/constants';
+import Tvdb from '@server/api/tvdb';
 import { MediaType } from '@server/constants/media';
 import { getRepository } from '@server/datasource';
 import Media from '@server/entity/Media';
@@ -13,7 +15,10 @@ import {
 import SeasonRequest from '@server/entity/SeasonRequest';
 import { User } from '@server/entity/User';
 import { Permission } from '@server/lib/permissions';
+import { MetadataProviderType, getSettings } from '@server/lib/settings';
 import { setupTestDb } from '@server/test/db';
+
+const ANIME_TMDB_ID = 209867;
 
 // get is a prototype method unlike getMovie, and replaces the cache lookup too
 const externalApiGetMock = mock.method(
@@ -26,6 +31,16 @@ const externalApiGetMock = mock.method(
 
     if (!tmdbId) {
       throw new Error(`Unstubbed external endpoint: ${endpoint}`);
+    }
+
+    if (tmdbId === ANIME_TMDB_ID) {
+      // TMDB merges both cours into a single season
+      return {
+        id: tmdbId,
+        external_ids: { tvdb_id: 424536 },
+        keywords: { results: [{ id: ANIME_KEYWORD_ID, name: 'anime' }] },
+        seasons: [{ season_number: 1, episode_count: 38 }],
+      };
     }
 
     return {
@@ -200,6 +215,47 @@ describe('MediaRequest.request', () => {
         where: { tmdbId: 88888, mediaType: MediaType.MOVIE },
       }),
       1
+    );
+  });
+
+  it('requests every TVDB season of an anime when asked for all seasons', async () => {
+    const seasonRequestRepository = getRepository(SeasonRequest);
+    const requester = await seedRequester(5);
+    const settings = getSettings();
+    const previous = settings.metadataSettings;
+    settings.metadataSettings = {
+      ...previous,
+      anime: MetadataProviderType.TVDB,
+    };
+    const tvdbMock = mock.method(Tvdb, 'getInstance', async () => ({
+      getTvShow: async () => ({
+        seasons: [
+          { season_number: 0, episode_count: 27 },
+          { season_number: 1, episode_count: 28 },
+          { season_number: 2, episode_count: 10 },
+        ],
+      }),
+    }));
+
+    try {
+      await MediaRequest.request(
+        {
+          mediaId: ANIME_TMDB_ID,
+          mediaType: MediaType.TV,
+          seasons: 'all',
+          is4k: false,
+        },
+        requester
+      );
+    } finally {
+      tvdbMock.mock.restore();
+      settings.metadataSettings = previous;
+    }
+
+    const seasons = await seasonRequestRepository.find();
+    assert.deepStrictEqual(
+      seasons.map((season) => season.seasonNumber).sort(),
+      [1, 2]
     );
   });
 });
