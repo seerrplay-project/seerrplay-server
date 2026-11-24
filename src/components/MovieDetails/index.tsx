@@ -31,7 +31,7 @@ import globalMessages from '@app/i18n/globalMessages';
 import ErrorPage from '@app/pages/_error';
 import { sortCrewPriority } from '@app/utils/creditHelpers';
 import defineMessages from '@app/utils/defineMessages';
-import { refreshIntervalHelper } from '@app/utils/refreshIntervalHelper';
+import { mediaRefreshInterval } from '@app/utils/refreshIntervalHelper';
 import {
   ArrowRightCircleIcon,
   CloudIcon,
@@ -51,7 +51,7 @@ import {
 import { type RatingResponse } from '@server/api/ratings';
 import { IssueStatus } from '@server/constants/issue';
 import { MediaStatus, MediaType } from '@server/constants/media';
-import { MediaServerType } from '@server/constants/server';
+import { MediaServerType, ServerType } from '@server/constants/server';
 import type { MovieDetails as MovieDetailsType } from '@server/models/Movie';
 import axios from 'axios';
 import { countries } from 'country-flag-icons';
@@ -59,7 +59,14 @@ import 'country-flag-icons/3x2/flags.css';
 import { uniqBy } from 'lodash';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useIntl } from 'react-intl';
 import useSWR from 'swr';
 
@@ -130,6 +137,7 @@ const MovieDetails = ({ movie }: MovieDetailsProps) => {
     useState<boolean>(false);
   const [showBlocklistModal, setShowBlocklistModal] = useState(false);
   const { addToast } = useToasts();
+  const sawDownload = useRef(false);
 
   const {
     data,
@@ -137,13 +145,8 @@ const MovieDetails = ({ movie }: MovieDetailsProps) => {
     mutate: revalidate,
   } = useSWR<MovieDetailsType>(`/api/v1/movie/${router.query.movieId}`, {
     fallbackData: movie,
-    refreshInterval: refreshIntervalHelper(
-      {
-        downloadStatus: movie?.mediaInfo?.downloadStatus,
-        downloadStatus4k: movie?.mediaInfo?.downloadStatus4k,
-      },
-      15000
-    ),
+    refreshInterval: (latest) =>
+      mediaRefreshInterval(latest?.mediaInfo, sawDownload, 15000),
   });
 
   const { data: ratingData } = useSWR<RatingResponse>(
@@ -158,10 +161,14 @@ const MovieDetails = ({ movie }: MovieDetailsProps) => {
   useEffect(() => {
     if (router.query.manage === '1') {
       setShowManager(true);
-      router.replace({
-        pathname: router.pathname,
-        query: { movieId: router.query.movieId },
-      });
+      router.replace(
+        {
+          pathname: router.pathname,
+          query: { movieId: router.query.movieId },
+        },
+        undefined,
+        { shallow: true }
+      );
     }
   }, [router, router.query.manage]);
 
@@ -305,26 +312,38 @@ const MovieDetails = ({ movie }: MovieDetailsProps) => {
 
   function getAvailableMediaServerName() {
     if (settings.currentSettings.mediaServerType === MediaServerType.EMBY) {
-      return intl.formatMessage(messages.play, { mediaServerName: 'Emby' });
+      return intl.formatMessage(messages.play, {
+        mediaServerName: ServerType.EMBY,
+      });
     }
 
     if (settings.currentSettings.mediaServerType === MediaServerType.PLEX) {
-      return intl.formatMessage(messages.play, { mediaServerName: 'Plex' });
+      return intl.formatMessage(messages.play, {
+        mediaServerName: ServerType.PLEX,
+      });
     }
 
-    return intl.formatMessage(messages.play, { mediaServerName: 'Jellyfin' });
+    return intl.formatMessage(messages.play, {
+      mediaServerName: ServerType.JELLYFIN,
+    });
   }
 
   function getAvailable4kMediaServerName() {
     if (settings.currentSettings.mediaServerType === MediaServerType.EMBY) {
-      return intl.formatMessage(messages.play, { mediaServerName: 'Emby' });
+      return intl.formatMessage(messages.play4k, {
+        mediaServerName: ServerType.EMBY,
+      });
     }
 
     if (settings.currentSettings.mediaServerType === MediaServerType.PLEX) {
-      return intl.formatMessage(messages.play4k, { mediaServerName: 'Plex' });
+      return intl.formatMessage(messages.play4k, {
+        mediaServerName: ServerType.PLEX,
+      });
     }
 
-    return intl.formatMessage(messages.play4k, { mediaServerName: 'Jellyfin' });
+    return intl.formatMessage(messages.play4k, {
+      mediaServerName: ServerType.JELLYFIN,
+    });
   }
 
   const onClickWatchlistBtn = async (): Promise<void> => {
@@ -473,10 +492,14 @@ const MovieDetails = ({ movie }: MovieDetailsProps) => {
         mediaType="movie"
         onClose={() => {
           setShowManager(false);
-          router.replace({
-            pathname: router.pathname,
-            query: { movieId: router.query.movieId },
-          });
+          router.replace(
+            {
+              pathname: router.pathname,
+              query: { movieId: router.query.movieId },
+            },
+            undefined,
+            { shallow: true }
+          );
         }}
         revalidate={() => revalidate()}
         show={showManager}

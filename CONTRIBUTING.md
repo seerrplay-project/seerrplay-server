@@ -2,13 +2,29 @@
 
 All help is welcome and greatly appreciated! If you would like to contribute to the project, the following instructions should get you started...
 
+## Review Times
+
+Seerr is maintained entirely by volunteers in their free time, so there is no set timeline for reviews.
+Depending on maintainer availability and how much review a change needs, it can take anywhere from days to months, and a small diff does not mean a quick review.
+**Commenting to ask why a pull request hasn't been reviewed or merged yet, pinging maintainers, or re-requesting reviews will not speed it up.** This applies to comments on other people's pull requests too.
+
+## Before Contributing
+
+> [!WARNING]
+>
+> **Large features and major refactors need maintainer approval before you start coding.** If your contribution adds a significant new feature, makes sweeping changes across the codebase, or refactors a substantial part of Seerr, open a proposal in [GitHub Discussions](https://github.com/seerr-team/seerr/discussions) first. Describe what you want to change and why, then wait for the maintainers to agree on the direction before you submit a pull request. Large pull requests opened without prior discussion may be closed without review.
+>
+> **Only pick up issues that maintainers have confirmed.** If you want to work on an existing feature request or bug report, check that it has the `confirmed` label and no longer has the `awaiting triage` label. The `confirmed` label means maintainers have reviewed the issue and welcome anyone to implement it. Issues still awaiting triage may be declined, duplicated, or need a different approach, so pull requests for them may be closed.
+
 ## AI Assistance Notice
 
 > [!IMPORTANT]
 >
-> Automated AI-generated contributions without human review are not allowed and will be rejected. This is an open-source project maintained by volunteers. We do not have the resources to review pull requests that could have been avoided with proper human oversight. While we have no issue with contributors using AI tools as an aid, it is your responsibility as a contributor to ensure that all submissions are carefully reviewed and meet our quality standards.
+> Issues and comments are contributions as well, and this policy covers them.
 >
-> **We expect AI-assisted development, not AI-driven development.** Use AI as a tool to help you write code. Do not let an AI agent autonomously generate an entire contribution and submit it on your behalf. It does not matter who clicks submit, an agent acting on its own or a human relaying its output unread. What matters is whether you reviewed, tested, and understood the change before it went up. We have been increasingly receiving low-effort, fully AI-generated PRs and will not tolerate them. Contributors who repeatedly submit unreviewed AI output may be banned.
+> AI-driven contributions are not allowed and will be rejected, even if you reviewed and tested them. This is an open-source project maintained by volunteers, and our time goes to reviewing your work, not your AI's. We have no issue with contributors using AI tools as an aid, but the contribution has to be yours, and it is your responsibility to make sure it meets our quality standards.
+>
+> **We expect AI-assisted development, not AI-driven development.** Use AI as a tool to help you understand the codebase, debug, or scaffold something you then write yourself. If an AI wrote the change, reviewing it, testing it, and submitting it yourself does not make it AI-assisted. The approach and the implementation have to be yours, and you have to understand every line of it. Whether a PR is AI-assisted or AI-driven is the maintainers' call, based on how the contribution reads and how you handle review, and claiming you drove it doesn't override that. We have been increasingly receiving low-effort, fully AI-generated PRs and will not tolerate them. Contributors who repeatedly submit AI-driven work may be banned.
 >
 > **Submissions that appear to be unreviewed AI output will be considered low-effort and may result in a ban if repeated even after several warnings.** Signs of unreviewed AI output include but are not limited to:
 >
@@ -23,13 +39,21 @@ All help is welcome and greatly appreciated! If you would like to contribute to 
 > **Read and follow the [Contributing Guide](CONTRIBUTING.md) before submitting.**
 > If your AI tool generates its own PR description format, it is your responsibility to rewrite it to follow our template before submitting, and rewrite means write the content yourself, not relabel the AI's output under our section headers. An incomplete PR template tells maintainers that insufficient review has been performed on the submission, regardless of the actual code quality. We may close such PRs without review.
 >
-> If you are using **any kind of AI assistance** to contribute to Seerr, it must be disclosed in the pull request.
+> If you are using **any kind of AI assistance** to contribute to Seerr, it must be disclosed in the pull request or issue.
+
+### Issues
+
+Write your issue yourself, using the issue form. Bypassing the form breaks this policy on its own. Moving AI output under the form's headings doesn't count as filling it in.
+
+For bug reports, describe what happened, how to reproduce it, your logs and your setup. Don't include a root cause or diagnosis that came from AI, as that's where wrong details creep in. If you found the cause yourself and understand it, put it under Additional Context.
+
+AI-generated issues will be closed and locked.
 
 ### Disclosure Requirements
 
-If you are using any kind of AI assistance while contributing to Seerr, **this must be disclosed in the pull request description**, along with the extent to which AI assistance was used (e.g., docs only vs. code generation).
+If you are using any kind of AI assistance while contributing to Seerr, **this must be disclosed in the AI Disclosure section of your pull request or issue**, along with the extent to which AI assistance was used (e.g., docs only vs. code generation).
 
-PR responses (comments, review replies) must be written in your own words, per the Expectations below. The one exception is AI-assisted translation, if you use AI to translate a response into English, disclose that here too.
+Issue comments and PR responses (comments, review replies) must be written in your own words, per the Expectations below. The one exception is AI-assisted translation, if you use AI to translate a response into English, disclose that here too.
 
 As a small exception, trivial tab-completion doesn't need to be disclosed, so long as it is limited to single keywords or short phrases.
 
@@ -114,11 +138,11 @@ Please be respectful to maintainers and disclose AI assistance.
    git switch -c BRANCH_NAME develop
    ```
 
-   - It is recommended to give your branch a meaningful name, relevant to the feature or fix you are working on.
+   - Name your branch `<type>/<short-description>`, where `<type>` is the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) type of the change.
      - Good examples:
-       - `docs-docker`
-       - `feature-new-system`
-       - `fix-title-cards`
+       - `docs/docker`
+       - `feat/new-system`
+       - `fix/title-cards`
      - Bad examples:
        - `bug`
        - `docs`

@@ -1,7 +1,8 @@
 describe('Discover Customization', () => {
   beforeEach(() => {
     cy.loginAsAdmin();
-    cy.intercept('/api/v1/settings/discover').as('getDiscoverSliders');
+    cy.request('/api/v1/settings/discover/reset');
+    cy.intercept('POST', '/api/v1/settings/discover').as('saveDiscoverSliders');
   });
 
   it('show the discover customization settings', () => {
@@ -45,7 +46,7 @@ describe('Discover Customization', () => {
       .should('contain', 'Recently Added');
 
     cy.get('[data-testid=discover-customize-submit').click();
-    cy.wait('@getDiscoverSliders');
+    cy.wait('@saveDiscoverSliders');
 
     cy.reload();
 
@@ -72,13 +73,13 @@ describe('Discover Customization', () => {
       .should('contain', 'Recent Requests');
 
     cy.get('[data-testid=discover-customize-submit').click();
-    cy.wait('@getDiscoverSliders');
+    cy.wait('@saveDiscoverSliders');
   });
 
   it('can create a new discover option and remove it', () => {
     cy.visit('/');
-    cy.intercept('/api/v1/settings/discover/*').as('discoverSlider');
-    cy.intercept('/api/v1/search/keyword*').as('searchKeyword');
+    cy.intercept('POST', '/api/v1/settings/discover/add').as('createSlider');
+    cy.intercept('DELETE', '/api/v1/settings/discover/*').as('deleteSlider');
 
     cy.get('[data-testid=discover-start-editing]').click();
 
@@ -88,15 +89,18 @@ describe('Discover Customization', () => {
 
     cy.get('#title').type(sliderTitle);
     // First confirm that an invalid keyword doesn't allow us to submit anything
-    cy.get('#data').type('invalidkeyword{enter}', { delay: 100 });
-    cy.wait('@searchKeyword');
+    cy.get('#data').type('invalidkeyword');
+    // Enter before the full query loads selects a stale option from a partial one
+    cy.contains('.react-select__menu-notice--no-options', 'No results.');
+    cy.get('#data').type('{enter}');
 
     cy.get('[data-testid=create-discover-option-form]')
       .find('button')
       .should('be.disabled');
 
     cy.get('#data').clear();
-    cy.get('#data').type('christmas{enter}', { delay: 100 });
+    cy.get('#data').type('christmas');
+    cy.contains('.react-select__option', /^christmas$/).click();
 
     // Confirming we have some results
     cy.contains('.slider-header', sliderTitle)
@@ -105,9 +109,7 @@ describe('Discover Customization', () => {
 
     cy.get('[data-testid=create-discover-option-form]').submit();
 
-    cy.wait('@discoverSlider');
-    cy.wait('@getDiscoverSliders');
-    cy.wait(1000);
+    cy.wait('@createSlider');
 
     cy.get('[data-testid=discover-slider-edit-mode]')
       .first()
@@ -136,7 +138,7 @@ describe('Discover Customization', () => {
       .click();
 
     cy.get('[data-testid=discover-customize-submit').click();
-    cy.wait('@getDiscoverSliders');
+    cy.wait('@saveDiscoverSliders');
 
     cy.visit('/');
 
@@ -152,9 +154,7 @@ describe('Discover Customization', () => {
       .find('[data-testid=discover-slider-remove-button]')
       .click();
 
-    cy.wait('@discoverSlider');
-    cy.wait('@getDiscoverSliders');
-    cy.wait(1000);
+    cy.wait('@deleteSlider');
 
     cy.get('[data-testid=discover-slider-edit-mode]')
       .first()
