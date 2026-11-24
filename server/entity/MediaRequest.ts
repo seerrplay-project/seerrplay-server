@@ -1,3 +1,4 @@
+import { getTvMetadataProvider } from '@server/api/metadata';
 import TheMovieDb from '@server/api/themoviedb';
 import {
   MediaRequestStatus,
@@ -380,9 +381,15 @@ export class MediaRequest {
       const tmdbMediaShow = tmdbMedia as Awaited<
         ReturnType<typeof tmdb.getTvShow>
       >;
+      // Season numbers must match the provider shown in the UI and used by
+      // Sonarr, otherwise "all" misses seasons TMDB merged together.
       let requestedSeasons =
         requestBody.seasons === 'all'
-          ? tmdbMediaShow.seasons
+          ? (
+              await (
+                await getTvMetadataProvider(tmdbMediaShow)
+              ).getTvShow({ tvId: tmdbMediaShow.id })
+            ).seasons
               .filter(
                 (season) =>
                   season.season_number !== 0 && season.episode_count > 0
