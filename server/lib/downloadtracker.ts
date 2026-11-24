@@ -1,6 +1,8 @@
 import RadarrAPI from '@server/api/servarr/radarr';
 import SonarrAPI from '@server/api/servarr/sonarr';
 import { MediaType } from '@server/constants/media';
+import type { DownloadStep } from '@server/lib/arrInsights';
+import { getDownloadStep } from '@server/lib/arrInsights';
 import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
 import { uniqWith } from 'lodash';
@@ -22,6 +24,7 @@ export interface DownloadingItem {
   title: string;
   downloadId: string;
   episode?: EpisodeNumberResult;
+  step: DownloadStep;
 }
 
 class DownloadTracker {
@@ -99,6 +102,7 @@ class DownloadTracker {
               timeLeft: item.timeleft,
               title: item.title,
               downloadId: item.downloadId,
+              step: getDownloadStep(item),
             }));
 
             if (queueItems.length > 0) {
@@ -178,6 +182,7 @@ class DownloadTracker {
               title: item.title,
               episode: item.episode,
               downloadId: item.downloadId,
+              step: getDownloadStep(item),
             }));
 
             if (queueItems.length > 0) {

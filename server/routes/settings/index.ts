@@ -2,6 +2,7 @@ import type { JellyfinLibrary } from '@server/api/jellyfin';
 import JellyfinAPI from '@server/api/jellyfin';
 import PlexAPI from '@server/api/plexapi';
 import PlexTvAPI from '@server/api/plextv';
+import QbittorrentAPI from '@server/api/qbittorrent';
 import TautulliAPI from '@server/api/tautulli';
 import { ApiErrorCode } from '@server/constants/error';
 import { getRepository } from '@server/datasource';
@@ -551,6 +552,50 @@ settingsRoutes.post('/tautulli', async (req, res, next) => {
   }
 
   return res.status(200).json(settings.tautulli);
+});
+
+settingsRoutes.get('/qbittorrent', (_req, res) => {
+  const { password, ...rest } = getSettings().qbittorrent;
+  res.status(200).json({ ...rest, hasPassword: !!password });
+});
+
+settingsRoutes.post('/qbittorrent', async (req, res, next) => {
+  const settings = getSettings();
+  const { url, username, password } = req.body as {
+    url?: string;
+    username?: string;
+    password?: string;
+  };
+  const updated = {
+    url: url?.trim() || undefined,
+    username: username ?? settings.qbittorrent.username,
+    // an empty password field keeps the stored one
+    password: password || settings.qbittorrent.password,
+  };
+
+  if (updated.url) {
+    try {
+      await new QbittorrentAPI(updated).getVersion();
+    } catch (e) {
+      logger.error('Something went wrong testing qBittorrent connection', {
+        label: 'API',
+        errorMessage: e.message,
+      });
+      return next({
+        status: 500,
+        message: 'Unable to connect to qBittorrent.',
+      });
+    }
+  }
+
+  settings.qbittorrent = updated.url ? updated : {};
+  await settings.save();
+
+  return res.status(200).json({
+    url: updated.url,
+    username: updated.username,
+    hasPassword: !!updated.password,
+  });
 });
 
 settingsRoutes.get(

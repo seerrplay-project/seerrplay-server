@@ -1,3 +1,4 @@
+import ArrInsights from '@app/components/ArrInsights';
 import BlocklistBlock from '@app/components/BlocklistBlock';
 import Button from '@app/components/Common/Button';
 import CachedImage from '@app/components/Common/CachedImage';
@@ -54,6 +55,8 @@ const messages = defineMessages('components.ManageSlideOver', {
   manageModalRequests: 'Requests',
   manageModalMedia: 'Media',
   manageModalMedia4k: '4K Media',
+  manageModalArr: '{service} downloads',
+  manageModalArr4k: '{service} 4K downloads',
   manageModalAdvanced: 'Advanced',
   manageModalNoRequests: 'No requests.',
   manageModalClearMedia: 'Clear Data',
@@ -293,6 +296,30 @@ const ManageSlideOver = ({
             </div>
           </div>
         )}
+        {show &&
+          hasPermission(Permission.ADMIN) &&
+          data.mediaInfo &&
+          [false, true]
+            .filter((is4k) =>
+              is4k
+                ? data.mediaInfo?.serviceId4k != null
+                : data.mediaInfo?.serviceId != null
+            )
+            .map((is4k) => (
+              <div key={`arr-${is4k}`}>
+                <h3 className="mb-2 text-xl font-bold">
+                  {intl.formatMessage(
+                    is4k ? messages.manageModalArr4k : messages.manageModalArr,
+                    { service: mediaType === 'movie' ? 'Radarr' : 'Sonarr' }
+                  )}
+                </h3>
+                <ArrInsights
+                  mediaId={data.mediaInfo?.id ?? 0}
+                  is4k={is4k}
+                  onChange={revalidate}
+                />
+              </div>
+            ))}
         {hasPermission([Permission.MANAGE_ISSUES, Permission.VIEW_ISSUES], {
           type: 'or',
         }) &&

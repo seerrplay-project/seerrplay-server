@@ -9,6 +9,7 @@ import PageTitle from '@app/components/Common/PageTitle';
 import OverrideRuleModal from '@app/components/Settings/OverrideRule/OverrideRuleModal';
 import OverrideRuleTiles from '@app/components/Settings/OverrideRule/OverrideRuleTiles';
 import RadarrModal from '@app/components/Settings/RadarrModal';
+import SettingsQbittorrent from '@app/components/Settings/SettingsQbittorrent';
 import SonarrModal from '@app/components/Settings/SonarrModal';
 import globalMessages from '@app/i18n/globalMessages';
 import defineMessages from '@app/utils/defineMessages';
@@ -499,6 +500,7 @@ const SettingsServices = () => {
           </>
         )}
       </div>
+      <SettingsQbittorrent />
       <div className="mb-6 mt-10">
         <h3 className="heading">
           {intl.formatMessage(messages.overrideRules)}
